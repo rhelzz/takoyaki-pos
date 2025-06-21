@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TransactionController;
 
@@ -37,11 +38,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/cashier/receipt/{transactionCode}', [CashierController::class, 'getTransactionReceipt'])->name('cashier.receipt');
     });
     
-    // Products - Admin, Manager only
+    // Categories & Products - Admin, Manager only
     Route::middleware(['role:admin,manager'])->group(function () {
+        // Categories Routes
+        Route::resource('categories', CategoryController::class);
+        Route::patch('/categories/{category}/toggle-status', [CategoryController::class, 'toggleStatus'])
+            ->name('categories.toggle-status');
+        
+        // Products Routes
         Route::resource('products', ProductController::class);
-        Route::patch('/products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->name('products.toggle-status');
-        Route::delete('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
+        Route::patch('/products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])
+            ->name('products.toggle-status');
+        Route::delete('/products/bulk-delete', [ProductController::class, 'bulkDelete'])
+            ->name('products.bulk-delete');
     });
     
     // Transactions - Admin, Manager only

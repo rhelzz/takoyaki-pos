@@ -12,23 +12,38 @@ class ReportController extends Controller
 {
     public function index()
     {
-        // Overview statistics untuk halaman utama report
-        $today = Carbon::today();
-        $thisMonth = Carbon::now()->startOfMonth();
-        
+        // Today's stats
         $todayStats = [
-            'transactions' => Transaction::whereDate('created_at', $today)->count(),
-            'revenue' => Transaction::whereDate('created_at', $today)->sum('total_amount'),
-            'profit' => Transaction::whereDate('created_at', $today)->sum('net_profit'),
+            'transactions' => Transaction::whereDate('created_at', today())->count(),
+            'revenue' => Transaction::whereDate('created_at', today())->sum('total_amount') ?? 0,
+            'profit' => Transaction::whereDate('created_at', today())->sum('net_profit') ?? 0,
         ];
-        
+
+        // Month's stats
         $monthStats = [
-            'transactions' => Transaction::where('created_at', '>=', $thisMonth)->count(),
-            'revenue' => Transaction::where('created_at', '>=', $thisMonth)->sum('total_amount'),
-            'profit' => Transaction::where('created_at', '>=', $thisMonth)->sum('net_profit'),
+            'transactions' => Transaction::whereMonth('created_at', now()->month)
+                                       ->whereYear('created_at', now()->year)
+                                       ->count(),
+            'revenue' => Transaction::whereMonth('created_at', now()->month)
+                                  ->whereYear('created_at', now()->year)
+                                  ->sum('total_amount') ?? 0,
+            'profit' => Transaction::whereMonth('created_at', now()->month)
+                                 ->whereYear('created_at', now()->year)
+                                 ->sum('net_profit') ?? 0,
         ];
-        
-        return view('reports.index', compact('todayStats', 'monthStats'));
+
+        // Recent transactions
+        $recentTransactions = Transaction::with('user')
+                                       ->whereDate('created_at', today())
+                                       ->orderBy('created_at', 'desc')
+                                       ->take(5)
+                                       ->get();
+
+        return view('reports.index', compact(
+            'todayStats',
+            'monthStats',
+            'recentTransactions'
+        ));
     }
 
     public function dailyReport(Request $request)
