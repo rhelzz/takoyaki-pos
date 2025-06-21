@@ -9,12 +9,46 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('category')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-            
+        $query = Product::with('category');
+        
+        // Search filter
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+        
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status);
+        }
+        
+        // Sort filter
+        switch ($request->get('sort', 'newest')) {
+            case 'name':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'price':
+                $query->orderBy('selling_price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('selling_price', 'desc');
+                break;
+            case 'newest':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+        }
+        
+        $products = $query->paginate(20);
+        
         return view('products.index', compact('products'));
     }
 

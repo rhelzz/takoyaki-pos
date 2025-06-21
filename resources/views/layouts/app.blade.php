@@ -93,16 +93,16 @@
              x-transition:leave="transition ease-in-out duration-300 transform"
              x-transition:leave-start="translate-x-0"
              x-transition:leave-end="-translate-x-full"
-             class="lg:hidden fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 overflow-y-auto"
+             class="lg:hidden fixed top-0 left-0 h-full w-56 bg-white shadow-xl z-50 overflow-y-auto"
              style="display: none;">
             
             <!-- Mobile Menu Header -->
-            <div class="p-4 border-b bg-red-500 text-white">
+            <div class="p-3 border-b bg-red-500 text-white">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold">Menu</h2>
+                    <h2 class="text-base font-bold">Menu</h2>
                     <button @click="mobileMenuOpen = false" 
                             class="p-1 rounded hover:bg-red-600 transition-colors">
-                        <i class="fas fa-times"></i>
+                        <i class="fas fa-times text-sm"></i>
                     </button>
                 </div>
                 @auth
@@ -114,7 +114,7 @@
             </div>
 
             <!-- Mobile Menu Items -->
-            <div class="p-4">
+            <div class="p-3">
                 @auth
                     @include('layouts.partials.mobile-menu')
                 @endauth

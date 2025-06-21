@@ -3,7 +3,7 @@
 @section('title', 'Kasir - Takoyaki POS')
 
 @section('content')
-<div class="h-screen pt-16 pb-20 lg:pb-0 bg-gray-50" x-data="cashier()">
+<div class="h-screen pt-10 pb-20 lg:pb-0 bg-gray-50" x-data="cashier()">
     <!-- Product Selection (Full Width) -->
     <div class="h-full overflow-y-auto">
         <div class="p-3 lg:p-4">
