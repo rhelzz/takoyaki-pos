@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
+use App\Models\User;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use App\Models\TransactionItem;
@@ -49,8 +50,17 @@ class ReportController extends Controller
     public function dailyReport(Request $request)
     {
         $date = $request->date ? Carbon::parse($request->date) : Carbon::today();
+        $userId = $request->user_id; // Filter user/kasir
         
-        $transactions = Transaction::whereDate('created_at', $date)
+        // Base query
+        $transactionQuery = Transaction::whereDate('created_at', $date);
+        
+        // Apply user filter if selected
+        if ($userId) {
+            $transactionQuery->where('user_id', $userId);
+        }
+        
+        $transactions = $transactionQuery
             ->with(['items.product', 'user'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -65,8 +75,13 @@ class ReportController extends Controller
             'total_discount' => $transactions->sum('discount_amount')
         ];
 
-        // Breakdown per jam
-        $hourlyData = Transaction::whereDate('created_at', $date)
+        // Breakdown per jam dengan filter user
+        $hourlyQuery = Transaction::whereDate('created_at', $date);
+        if ($userId) {
+            $hourlyQuery->where('user_id', $userId);
+        }
+        
+        $hourlyData = $hourlyQuery
             ->select(
                 DB::raw('HOUR(created_at) as hour'),
                 DB::raw('COUNT(*) as transaction_count'),
@@ -77,13 +92,35 @@ class ReportController extends Controller
             ->orderBy('hour')
             ->get();
 
-        // Payment method breakdown
-        $paymentMethods = Transaction::whereDate('created_at', $date)
+        // Payment method breakdown dengan filter user
+        $paymentQuery = Transaction::whereDate('created_at', $date);
+        if ($userId) {
+            $paymentQuery->where('user_id', $userId);
+        }
+        
+        $paymentMethods = $paymentQuery
             ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total_amount) as total'))
             ->groupBy('payment_method')
             ->get();
 
-        return view('reports.daily', compact('date', 'transactions', 'summary', 'hourlyData', 'paymentMethods'));
+        // Get all users yang pernah melakukan transaksi untuk dropdown filter
+        $users = User::whereHas('transactions', function($query) use ($date) {
+            $query->whereDate('created_at', $date);
+        })->orderBy('name')->get();
+
+        // Get selected user info
+        $selectedUser = $userId ? User::find($userId) : null;
+
+        return view('reports.daily', compact(
+            'date', 
+            'transactions', 
+            'summary', 
+            'hourlyData', 
+            'paymentMethods',
+            'users',
+            'selectedUser',
+            'userId'
+        ));
     }
 
     public function busiestHours(Request $request)

@@ -13,20 +13,43 @@
             </a>
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Laporan Harian</h1>
-                <p class="text-gray-600">{{ \Carbon\Carbon::parse($date)->format('l, d F Y') }}</p>
+                <p class="text-gray-600">
+                    {{ \Carbon\Carbon::parse($date)->format('l, d F Y') }}
+                    @if($selectedUser)
+                        - Kasir: <span class="font-semibold text-red-600">{{ $selectedUser->name }}</span>
+                    @endif
+                </p>
             </div>
         </div>
 
-        <!-- Date Selector -->
+        <!-- Date and User Selector -->
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between bg-white rounded-lg shadow p-4">
             <form method="GET" class="flex flex-col lg:flex-row lg:items-center space-y-3 lg:space-y-0 lg:space-x-3">
-                <div class="flex items-center space-x-2">
-                    <label class="text-sm font-medium text-gray-700">Pilih Tanggal:</label>
-                    <input type="date" 
-                           name="date" 
-                           value="{{ $date->format('Y-m-d') }}"
-                           max="{{ today()->format('Y-m-d') }}"
-                           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                <div class="flex flex-col lg:flex-row lg:items-center space-y-3 lg:space-y-0 lg:space-x-3">
+                    <!-- Date Filter -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Pilih Tanggal:</label>
+                        <input type="date" 
+                               name="date" 
+                               value="{{ $date->format('Y-m-d') }}"
+                               max="{{ today()->format('Y-m-d') }}"
+                               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    </div>
+
+                    <!-- User Filter -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Kasir:</label>
+                        <select name="user_id" 
+                                class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 min-w-[150px]">
+                            <option value="">Semua Kasir</option>
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}" {{ $userId == $user->id ? 'selected' : '' }}>
+                                    {{ $user->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     <button type="submit" 
                             class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">
                         <i class="fas fa-search mr-2"></i>Lihat
@@ -35,12 +58,12 @@
             </form>
 
             <div class="flex space-x-2 mt-3 lg:mt-0">
-                <a href="{{ route('reports.daily', ['date' => $date->subDay()->format('Y-m-d')]) }}" 
+                <a href="{{ route('reports.daily', array_merge(request()->all(), ['date' => $date->subDay()->format('Y-m-d')])) }}" 
                    class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm">
                     <i class="fas fa-chevron-left mr-1"></i>Kemarin
                 </a>
                 @if($date->format('Y-m-d') < today()->format('Y-m-d'))
-                    <a href="{{ route('reports.daily', ['date' => $date->addDays(2)->format('Y-m-d')]) }}" 
+                    <a href="{{ route('reports.daily', array_merge(request()->all(), ['date' => $date->addDays(2)->format('Y-m-d')])) }}" 
                        class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm">
                         Besok<i class="fas fa-chevron-right ml-1"></i>
                     </a>
@@ -100,11 +123,47 @@
         </div>
     </div>
 
+    <!-- Kasir Performance (jika ada filter kasir) -->
+    @if($selectedUser)
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-user-tie mr-2 text-red-600"></i>
+            Performa Kasir: {{ $selectedUser->name }}
+        </h3>
+        
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-blue-50 rounded-lg">
+                <div class="text-2xl font-bold text-blue-600">{{ $summary['total_transactions'] }}</div>
+                <div class="text-sm text-gray-600">Transaksi</div>
+            </div>
+            <div class="text-center p-4 bg-green-50 rounded-lg">
+                <div class="text-lg font-bold text-green-600">Rp {{ number_format($summary['total_revenue'], 0, ',', '.') }}</div>
+                <div class="text-sm text-gray-600">Total Penjualan</div>
+            </div>
+            <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                <div class="text-lg font-bold text-yellow-600">
+                    Rp {{ $summary['total_transactions'] > 0 ? number_format($summary['total_revenue'] / $summary['total_transactions'], 0, ',', '.') : 0 }}
+                </div>
+                <div class="text-sm text-gray-600">Rata-rata/Transaksi</div>
+            </div>
+            <div class="text-center p-4 bg-purple-50 rounded-lg">
+                <div class="text-lg font-bold text-purple-600">Rp {{ number_format($summary['net_profit'], 0, ',', '.') }}</div>
+                <div class="text-sm text-gray-600">Kontribusi Profit</div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Charts -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <!-- Hourly Chart -->
         <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Transaksi per Jam</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                Transaksi per Jam
+                @if($selectedUser)
+                    <span class="text-sm font-normal text-gray-600">({{ $selectedUser->name }})</span>
+                @endif
+            </h3>
             @if($hourlyData->count() > 0)
                 <div class="space-y-3">
                     @foreach($hourlyData as $hour)
@@ -137,7 +196,12 @@
 
         <!-- Payment Methods -->
         <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Metode Pembayaran</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                Metode Pembayaran
+                @if($selectedUser)
+                    <span class="text-sm font-normal text-gray-600">({{ $selectedUser->name }})</span>
+                @endif
+            </h3>
             @if($paymentMethods->count() > 0)
                 <div class="space-y-4">
                     @foreach($paymentMethods as $method)
@@ -183,7 +247,12 @@
     <div class="bg-white rounded-lg shadow">
         <div class="p-6 border-b border-gray-200">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                <h3 class="text-lg font-semibold text-gray-800">Detail Transaksi</h3>
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Detail Transaksi
+                    @if($selectedUser)
+                        <span class="text-sm font-normal text-gray-600">({{ $selectedUser->name }})</span>
+                    @endif
+                </h3>
                 <div class="mt-2 lg:mt-0 text-sm text-gray-600">
                     Total: {{ $transactions->count() }} transaksi
                 </div>
@@ -197,7 +266,9 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Waktu</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
+                            @if(!$selectedUser)
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kasir</th>
+                            @endif
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pembayaran</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
@@ -213,9 +284,11 @@
                                 <td class="px-6 py-4 text-sm font-medium text-gray-800">
                                     {{ $transaction->transaction_code }}
                                 </td>
+                                @if(!$selectedUser)
                                 <td class="px-6 py-4 text-sm text-gray-600">
                                     {{ $transaction->user->name }}
                                 </td>
+                                @endif
                                 <td class="px-6 py-4 text-sm text-gray-600">
                                     {{ $transaction->total_items }} item
                                 </td>
@@ -236,7 +309,9 @@
         @else
             <div class="p-8 text-center text-gray-500">
                 <i class="fas fa-receipt text-4xl mb-4 text-gray-300"></i>
-                <p>Belum ada transaksi pada tanggal {{ $date->format('d/m/Y') }}</p>
+                <p>Belum ada transaksi pada tanggal {{ $date->format('d/m/Y') }}
+                    @if($selectedUser) oleh {{ $selectedUser->name }} @endif
+                </p>
             </div>
         @endif
     </div>
