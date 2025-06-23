@@ -105,7 +105,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach($products as $product)
-                                <tr class="hover:bg-gray-50 transition-colors">
+                                <tr class="hover:bg-gray-50 transition-colors" id="product-row-{{ $product->id }}">
                                     <td class="px-4 py-4">
                                         <a href="{{ route('products.show', $product) }}" class="flex items-center hover:text-red-600 transition-colors">
                                             @if($product->image)
@@ -134,8 +134,10 @@
                                                class="text-yellow-600 hover:text-yellow-800 p-1" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button @click="deleteProduct({{ $product->id }}, '{{ $product->name }}')"
-                                                    class="text-red-600 hover:text-red-800 p-1" title="Hapus">
+                                            <button @click="deleteProduct({{ $product->id }}, '{{ addslashes($product->name) }}')"
+                                                    class="text-red-600 hover:text-red-800 p-1 delete-btn" 
+                                                    title="Hapus"
+                                                    data-product-id="{{ $product->id }}">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -149,7 +151,7 @@
                 <!-- Mobile List - Fixed Layout -->
                 <div class="lg:hidden divide-y divide-gray-100">
                     @foreach($products as $product)
-                        <div class="p-4">
+                        <div class="p-4" id="product-mobile-{{ $product->id }}">
                             <!-- Clickable Product Area -->
                             <a href="{{ route('products.show', $product) }}" class="block hover:opacity-75 transition-opacity">
                                 <div class="flex items-center space-x-3">
@@ -190,9 +192,10 @@
                                    title="Edit">
                                     <i class="fas fa-edit mr-1"></i>Edit
                                 </a>
-                                <button @click="deleteProduct({{ $product->id }}, '{{ $product->name }}')"
-                                        class="text-red-600 hover:text-red-800 text-sm font-medium"
-                                        title="Hapus">
+                                <button @click="deleteProduct({{ $product->id }}, '{{ addslashes($product->name) }}')"
+                                        class="text-red-600 hover:text-red-800 text-sm font-medium delete-btn"
+                                        title="Hapus"
+                                        data-product-id="{{ $product->id }}">
                                     <i class="fas fa-trash mr-1"></i>Hapus
                                 </button>
                             </div>
@@ -222,6 +225,22 @@
             @endif
         </div>
     </div>
+
+    <!-- Loading Overlay -->
+    <div x-show="isDeleting" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         style="display: none;">
+        <div class="bg-white rounded-lg p-6 text-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
+            <p class="text-gray-600">Menghapus produk...</p>
+        </div>
+    </div>
 </div>
 
 @push('scripts')
@@ -229,6 +248,8 @@
 function products() {
     return {
         showFilters: false,
+        isDeleting: false,
+        deletingProducts: new Set(),
 
         init() {
             // Auto-show filters on mobile if there are active filters
@@ -236,40 +257,225 @@ function products() {
                 const hasActiveFilters = new URLSearchParams(window.location.search).toString() !== '';
                 this.showFilters = hasActiveFilters;
             }
+
+            // Add keyboard shortcut for refresh (Ctrl+R or Cmd+R)
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                    e.preventDefault();
+                    this.refreshPage();
+                }
+            });
         },
 
+        /**
+         * Enhanced delete product function with proper error handling
+         */
         async deleteProduct(productId, productName) {
-            if (!confirm(`Yakin ingin menghapus produk "${productName}"? Aksi ini tidak dapat dibatalkan.`)) return;
+            // Prevent multiple deletions of the same product
+            if (this.deletingProducts.has(productId)) {
+                return;
+            }
+
+            // Confirm deletion
+            if (!confirm(`Yakin ingin menghapus produk "${productName}"?\n\nAksi ini tidak dapat dibatalkan.`)) {
+                return;
+            }
+
+            // Mark product as being deleted
+            this.deletingProducts.add(productId);
+            this.isDeleting = true;
+
+            // Get button elements
+            const deleteButtons = document.querySelectorAll(`[data-product-id="${productId}"]`);
+            const originalContents = new Map();
 
             try {
+                // Validate CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                if (!csrfToken || !csrfToken.content) {
+                    throw new Error('CSRF token tidak ditemukan. Harap refresh halaman dan coba lagi.');
+                }
+
+                // Update button states to loading
+                deleteButtons.forEach(button => {
+                    originalContents.set(button, button.innerHTML);
+                    button.disabled = true;
+                    button.classList.add('opacity-50', 'cursor-not-allowed');
+                    
+                    const icon = button.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-spinner fa-spin mr-1';
+                    }
+                    
+                    const text = button.textContent.trim();
+                    if (text.includes('Hapus')) {
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Menghapus...';
+                    }
+                });
+
+                // Make DELETE request
                 const response = await fetch(`/products/${productId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
+                        'X-CSRF-TOKEN': csrfToken.content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    // Add timeout
+                    signal: AbortSignal.timeout(30000) // 30 seconds
                 });
 
-                if (response.ok) {
-                    // Show success toast and reload
-                    if (typeof showToast === 'function') {
-                        showToast('Produk berhasil dihapus', 'success');
-                    }
-                    setTimeout(() => location.reload(), 1000);
+                // Parse response
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    throw new Error('Respons server tidak valid. Silakan coba lagi.');
+                }
+
+                if (response.ok && data.success) {
+                    // Success: Remove from DOM with animation
+                    this.removeProductFromDOM(productId, productName);
+                    
+                    // Show success message
+                    this.showToast(data.message || 'Produk berhasil dihapus', 'success');
+                    
                 } else {
-                    if (typeof showToast === 'function') {
-                        showToast('Gagal menghapus produk', 'error');
+                    // Handle various error cases
+                    let errorMessage = data.message || 'Gagal menghapus produk';
+                    
+                    if (data.code === 'PRODUCT_IN_USE') {
+                        errorMessage = 'Produk tidak dapat dihapus karena sudah digunakan dalam transaksi';
+                    } else if (response.status === 404) {
+                        errorMessage = 'Produk tidak ditemukan';
+                    } else if (response.status === 422) {
+                        errorMessage = data.message || 'Data tidak valid';
+                    } else if (response.status >= 500) {
+                        errorMessage = 'Terjadi kesalahan server. Silakan coba lagi nanti.';
                     }
+                    
+                    this.showToast(errorMessage, 'error');
+                    this.restoreButtons(deleteButtons, originalContents);
                 }
+
             } catch (error) {
-                console.error('Error:', error);
-                if (typeof showToast === 'function') {
-                    showToast('Terjadi kesalahan sistem', 'error');
+                console.error('Delete product error:', error);
+                
+                let errorMessage = 'Terjadi kesalahan sistem';
+                
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Request timeout. Silakan coba lagi.';
+                } else if (error.message.includes('CSRF')) {
+                    errorMessage = error.message;
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMessage = 'Koneksi bermasalah. Periksa koneksi internet Anda.';
+                } else if (error.message) {
+                    errorMessage = error.message;
                 }
+                
+                this.showToast(errorMessage, 'error');
+                this.restoreButtons(deleteButtons, originalContents);
+                
+            } finally {
+                // Clean up
+                this.deletingProducts.delete(productId);
+                this.isDeleting = this.deletingProducts.size > 0;
             }
+        },
+
+        /**
+         * Remove product from DOM with smooth animation
+         */
+        removeProductFromDOM(productId, productName) {
+            const desktopRow = document.getElementById(`product-row-${productId}`);
+            const mobileItem = document.getElementById(`product-mobile-${productId}`);
+            
+            const elementsToRemove = [desktopRow, mobileItem].filter(el => el);
+            
+            if (elementsToRemove.length === 0) {
+                console.warn(`Product elements not found for ID: ${productId}`);
+                return;
+            }
+
+            elementsToRemove.forEach(element => {
+                if (element) {
+                    // Add transition classes
+                    element.style.transition = 'all 0.3s ease';
+                    element.style.opacity = '0';
+                    element.style.transform = 'translateX(-20px) scale(0.95)';
+                    
+                    // Remove from DOM after animation
+                    setTimeout(() => {
+                        if (element && element.parentNode) {
+                            element.parentNode.removeChild(element);
+                        }
+                    }, 300);
+                }
+            });
+
+            // Check if this was the last product
+            setTimeout(() => {
+                const remainingProducts = document.querySelectorAll('[id^="product-row-"], [id^="product-mobile-"]');
+                if (remainingProducts.length === 0) {
+                    // Reload page to show empty state
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            }, 350);
+        },
+
+        /**
+         * Restore button states after error
+         */
+        restoreButtons(buttons, originalContents) {
+            buttons.forEach(button => {
+                const originalContent = originalContents.get(button);
+                if (originalContent) {
+                    button.innerHTML = originalContent;
+                }
+                button.disabled = false;
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+        },
+
+        /**
+         * Show toast notification
+         */
+        showToast(message, type = 'info') {
+            // Check if global showToast function exists
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, type);
+                return;
+            }
+
+            // Fallback: simple alert
+            if (type === 'error') {
+                alert('❌ ' + message);
+            } else if (type === 'success') {
+                alert('✅ ' + message);
+            } else {
+                alert(message);
+            }
+        },
+
+        /**
+         * Refresh page with current filters
+         */
+        refreshPage() {
+            window.location.reload();
         }
     }
 }
+
+// Global error handler for unhandled promise rejections
+window.addEventListener('unhandledrejection', event => {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Prevent the default browser behavior
+    event.preventDefault();
+});
 </script>
 @endpush
 @endsection

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
@@ -54,7 +56,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = Category::active()->orderBy('name')->get();
+        $categories = Category::active()->orderBy('id', 'asc')->get();
         return view('products.create', compact('categories'));
     }
 
@@ -137,21 +139,59 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui');
     }
 
+    /**
+     * Delete product with proper JSON response for AJAX
+     */
     public function destroy(Product $product)
     {
-        // Cek apakah produk pernah digunakan dalam transaksi
-        if ($product->transactionItems()->exists()) {
-            return redirect()->route('products.index')
-                ->with('error', 'Produk tidak dapat dihapus karena sudah pernah digunakan dalam transaksi');
-        }
+        try {
+            // Cek apakah produk pernah digunakan dalam transaksi
+            if ($product->transactionItems()->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Produk tidak dapat dihapus karena sudah pernah digunakan dalam transaksi',
+                    'code' => 'PRODUCT_IN_USE'
+                ], 422);
+            }
 
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+            // Hapus gambar jika ada
+            if ($product->image) {
+                try {
+                    Storage::disk('public')->delete($product->image);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to delete product image: ' . $e->getMessage());
+                    // Continue with product deletion even if image deletion fails
+                }
+            }
+            
+            $productName = $product->name;
+            $product->delete();
+            
+            // Log successful deletion
+            Log::info("Product '{$productName}' deleted successfully", [
+                'product_id' => $product->id,
+                'deleted_by' => Auth::user()->name ?? 'Unknown'
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Produk berhasil dihapus',
+                'product_name' => $productName
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Product deletion error', [
+                'product_id' => $product->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus produk. Silakan coba lagi.',
+                'code' => 'DELETION_FAILED'
+            ], 500);
         }
-        
-        $product->delete();
-        
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus');
     }
 
     public function toggleStatus(Product $product)
@@ -170,16 +210,35 @@ class ProductController extends Controller
         ]);
 
         $products = Product::whereIn('id', $request->product_ids)->get();
+        $deletedCount = 0;
+        $errors = [];
         
         foreach ($products as $product) {
             if (!$product->transactionItems()->exists()) {
-                if ($product->image) {
-                    Storage::disk('public')->delete($product->image);
+                try {
+                    if ($product->image) {
+                        Storage::disk('public')->delete($product->image);
+                    }
+                    $product->delete();
+                    $deletedCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Gagal menghapus {$product->name}";
+                    Log::error('Bulk delete error', [
+                        'product_id' => $product->id,
+                        'error' => $e->getMessage()
+                    ]);
                 }
-                $product->delete();
+            } else {
+                $errors[] = "{$product->name} tidak dapat dihapus (sudah digunakan dalam transaksi)";
             }
         }
 
-        return redirect()->route('products.index')->with('success', 'Produk yang dipilih berhasil dihapus');
+        $message = $deletedCount > 0 ? "{$deletedCount} produk berhasil dihapus" : "Tidak ada produk yang dapat dihapus";
+        
+        if (count($errors) > 0) {
+            $message .= ". Beberapa produk tidak dapat dihapus: " . implode(', ', $errors);
+        }
+
+        return redirect()->route('products.index')->with('success', $message);
     }
 }

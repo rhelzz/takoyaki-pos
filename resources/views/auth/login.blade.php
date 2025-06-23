@@ -83,15 +83,6 @@
             </form>
         </div>
 
-        <!-- Demo Accounts -->
-        <div class="mt-6 bg-white bg-opacity-20 rounded-lg p-4 text-white text-sm">
-            <h3 class="font-medium mb-2">Akun Demo:</h3>
-            <div class="space-y-1">
-                <p><strong>Admin:</strong> admin@takoyaki.com / password123</p>
-                <p><strong>Manager:</strong> manager@takoyaki.com / password123</p>
-                <p><strong>Kasir:</strong> kasir@takoyaki.com / password123</p>
-            </div>
-        </div>
     </div>
 
     <script>
