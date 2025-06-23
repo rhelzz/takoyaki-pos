@@ -58,7 +58,7 @@ class CashierController extends Controller
             
             $taxTemplates = collect([
                 (object)['id' => 1, 'percentage' => 0, 'display_name' => 'Tanpa Pajak'],
-                (object)['id' => 2, 'percentage' => 10, 'display_name' => 'PPN 10%'],
+                (object)['id' => 2, 'percentage' => 11, 'display_name' => 'PPN 11%'],
             ]);
             
             // Coba ambil dari database jika ada

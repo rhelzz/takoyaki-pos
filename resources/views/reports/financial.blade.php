@@ -70,17 +70,33 @@
 
                     <!-- Quick filters - horizontal scroll on mobile -->
                     <div class="flex space-x-2 overflow-x-auto pb-2 -mx-1 px-1">
-                        <a href="{{ route('reports.financial', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d')]) }}" 
-                           class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                            Bulan Ini
+                        <a href="{{ route('reports.financial', [
+                            'start_date' => now('Asia/Jakarta')->startOfMonth()->format('Y-m-d'), 
+                            'end_date' => now('Asia/Jakarta')->endOfMonth()->format('Y-m-d')
+                        ]) }}" 
+                        class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Bulan Ini ({{ now('Asia/Jakarta')->format('M Y') }})
                         </a>
-                        <a href="{{ route('reports.financial', ['start_date' => now()->subMonth()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->subMonth()->endOfMonth()->format('Y-m-d')]) }}" 
-                           class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                            Bulan Lalu
+                        <a href="{{ route('reports.financial', [
+                            'start_date' => now('Asia/Jakarta')->subMonth()->startOfMonth()->format('Y-m-d'), 
+                            'end_date' => now('Asia/Jakarta')->subMonth()->endOfMonth()->format('Y-m-d')
+                        ]) }}" 
+                        class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Bulan Lalu ({{ now('Asia/Jakarta')->subMonth()->format('M Y') }})
                         </a>
-                        <a href="{{ route('reports.financial', ['start_date' => now()->startOfYear()->format('Y-m-d'), 'end_date' => now()->endOfYear()->format('Y-m-d')]) }}" 
-                           class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                            Tahun Ini
+                        <a href="{{ route('reports.financial', [
+                            'start_date' => now('Asia/Jakarta')->startOfYear()->format('Y-m-d'), 
+                            'end_date' => now('Asia/Jakarta')->endOfYear()->format('Y-m-d')
+                        ]) }}" 
+                        class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Tahun Ini ({{ now('Asia/Jakarta')->format('Y') }})
+                        </a>
+                        <a href="{{ route('reports.financial', [
+                            'start_date' => now('Asia/Jakarta')->subDays(6)->format('Y-m-d'), 
+                            'end_date' => now('Asia/Jakarta')->format('Y-m-d')
+                        ]) }}" 
+                        class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                            7 Hari Terakhir
                         </a>
                     </div>
                 </form>

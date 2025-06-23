@@ -11,11 +11,19 @@
                 <div>
                     <h1 class="text-xl md:text-2xl font-bold text-gray-800">Produk</h1>
                     <p class="text-sm text-gray-600 hidden sm:block">Atur dan kelola produk takoyaki</p>
+                    <!-- Page Indicator -->
+                    @if($products->hasPages())
+                        <p class="text-xs text-gray-500 mt-1">
+                            Halaman {{ $products->currentPage() }} dari {{ $products->lastPage() }} 
+                            ({{ $products->total() }} produk)
+                        </p>
+                    @endif
                 </div>
                 <div class="flex items-center space-x-2">
                     <!-- Mobile Filter Toggle -->
-                    <button @click="showFilters = !showFilters" 
-                            class="lg:hidden bg-gray-500 text-white p-2 rounded-lg">
+                    <button @click="toggleFilters()" 
+                            class="lg:hidden bg-gray-500 text-white p-2 rounded-lg"
+                            :class="{ 'bg-red-500': showFilters }">
                         <i class="fas fa-filter text-sm"></i>
                     </button>
                     <!-- Add Product Button -->
@@ -87,6 +95,44 @@
                 </div>
             </form>
         </div>
+
+        <!-- Pagination Info & Controls Top -->
+        @if($products->hasPages())
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                    <!-- Page Info -->
+                    <div class="text-sm text-gray-600">
+                        Menampilkan {{ $products->firstItem() ?? 0 }} - {{ $products->lastItem() ?? 0 }} 
+                        dari {{ $products->total() }} produk
+                    </div>
+                    
+                    <!-- Page Indicator -->
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-600">Halaman:</span>
+                        <div class="flex items-center space-x-1">
+                            @if($products->currentPage() > 1)
+                                <a href="{{ $products->previousPageUrl() }}" 
+                                   class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                                    {{ $products->currentPage() - 1 }}
+                                </a>
+                            @endif
+                            
+                            <span class="px-3 py-1 text-sm bg-red-500 text-white rounded-lg font-medium">
+                                {{ $products->currentPage() }}
+                            </span>
+                            
+                            @if($products->hasMorePages())
+                                <a href="{{ $products->nextPageUrl() }}" 
+                                   class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                                    {{ $products->currentPage() + 1 }}
+                                </a>
+                            @endif
+                        </div>
+                        <span class="text-sm text-gray-600">dari {{ $products->lastPage() }}</span>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <!-- Products List - Fixed Layout -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -203,10 +249,68 @@
                     @endforeach
                 </div>
 
-                <!-- Pagination -->
+                <!-- Pagination Bottom -->
                 @if($products->hasPages())
                     <div class="p-4 border-t border-gray-200 bg-gray-50">
-                        {{ $products->appends(request()->query())->links() }}
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                            <!-- Navigation Buttons -->
+                            <div class="flex items-center space-x-2">
+                                @if($products->onFirstPage())
+                                    <span class="px-4 py-2 text-sm text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
+                                        <i class="fas fa-chevron-left mr-1"></i>Sebelumnya
+                                    </span>
+                                @else
+                                    <a href="{{ $products->appends(request()->query())->previousPageUrl() }}" 
+                                       class="px-4 py-2 text-sm text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors">
+                                        <i class="fas fa-chevron-left mr-1"></i>Sebelumnya
+                                    </a>
+                                @endif
+
+                                @if($products->hasMorePages())
+                                    <a href="{{ $products->appends(request()->query())->nextPageUrl() }}" 
+                                       class="px-4 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors">
+                                        Selanjutnya<i class="fas fa-chevron-right ml-1"></i>
+                                    </a>
+                                @else
+                                    <span class="px-4 py-2 text-sm text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
+                                        Selanjutnya<i class="fas fa-chevron-right ml-1"></i>
+                                    </span>
+                                @endif
+                            </div>
+
+                            <!-- Page Numbers -->
+                            <div class="flex items-center space-x-1">
+                                @php
+                                    $start = max(1, $products->currentPage() - 2);
+                                    $end = min($products->lastPage(), $products->currentPage() + 2);
+                                @endphp
+
+                                @if($start > 1)
+                                    <a href="{{ $products->appends(request()->query())->url(1) }}" 
+                                       class="px-3 py-1 text-sm text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded">1</a>
+                                    @if($start > 2)
+                                        <span class="text-gray-400">...</span>
+                                    @endif
+                                @endif
+
+                                @for($i = $start; $i <= $end; $i++)
+                                    @if($i == $products->currentPage())
+                                        <span class="px-3 py-1 text-sm text-white bg-red-500 rounded font-medium">{{ $i }}</span>
+                                    @else
+                                        <a href="{{ $products->appends(request()->query())->url($i) }}" 
+                                           class="px-3 py-1 text-sm text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded">{{ $i }}</a>
+                                    @endif
+                                @endfor
+
+                                @if($end < $products->lastPage())
+                                    @if($end < $products->lastPage() - 1)
+                                        <span class="text-gray-400">...</span>
+                                    @endif
+                                    <a href="{{ $products->appends(request()->query())->url($products->lastPage()) }}" 
+                                       class="px-3 py-1 text-sm text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded">{{ $products->lastPage() }}</a>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 @endif
             @else
@@ -252,9 +356,12 @@ function products() {
         deletingProducts: new Set(),
 
         init() {
-            // Auto-show filters on mobile if there are active filters
+            // Only auto-show filters on mobile if there are active filters, NOT on pagination
             if (window.innerWidth < 1024) {
-                const hasActiveFilters = new URLSearchParams(window.location.search).toString() !== '';
+                const urlParams = new URLSearchParams(window.location.search);
+                // Remove 'page' parameter from check to avoid opening filters on pagination
+                urlParams.delete('page');
+                const hasActiveFilters = urlParams.toString() !== '';
                 this.showFilters = hasActiveFilters;
             }
 
@@ -265,6 +372,13 @@ function products() {
                     this.refreshPage();
                 }
             });
+        },
+
+        /**
+         * Toggle filters visibility (for manual control)
+         */
+        toggleFilters() {
+            this.showFilters = !this.showFilters;
         },
 
         /**

@@ -103,7 +103,7 @@
     <!-- Floating Cart Button (Mobile Only) -->
     <div class="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50">
         <button @click="showCartModal = true"
-                class="relative bg-red-500 hover:bg-red-600 text-white rounded-full w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110">
+                class="relative bg-red-500 hover:bg-red-600 text-white rounded-full w-12 h-12 lg:w-14 lg:h-14 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
             <i class="fas fa-shopping-cart text-lg lg:text-xl"></i>
             
             <!-- Cart Counter Badge -->
@@ -368,12 +368,22 @@ function cashier() {
 
         // Computed values
         get total() {
-            return this.cart.reduce((sum, item) => sum + (item.total || 0), 0);
+            return this.cart.reduce((sum, item) => {
+                const itemTotal = parseFloat(item.total) || 0;
+                return sum + itemTotal;
+            }, 0);
         },
 
         // Methods
         init() {
             console.log('Cashier initialized with', this.products.length, 'products');
+            
+            // Validate product data
+            this.products = this.products.map(product => ({
+                ...product,
+                selling_price: parseFloat(product.selling_price) || 0
+            }));
+            
             this.calculateTotals();
             
             if (this.products.length > 0) {
@@ -388,22 +398,41 @@ function cashier() {
                     document.body.style.overflow = '';
                 }
             });
+
+            // Watch cart changes and recalculate
+            this.$watch('cart', () => {
+                this.calculateTotals();
+            }, { deep: true });
         },
 
         calculateTotals() {
-            this.subtotal = this.total;
+            // Ensure subtotal is a valid number
+            this.subtotal = this.total || 0;
             
-            // Calculate discount
-            this.discountAmount = this.selectedDiscount ? 
-                (this.subtotal * parseFloat(this.selectedDiscount)) / 100 : 0;
+            // Calculate discount with safety checks
+            const discountPercent = parseFloat(this.selectedDiscount) || 0;
+            this.discountAmount = (this.subtotal * discountPercent) / 100;
             
             const afterDiscount = this.subtotal - this.discountAmount;
             
-            // Calculate tax
-            this.taxAmount = this.selectedTax ? 
-                (afterDiscount * parseFloat(this.selectedTax)) / 100 : 0;
+            // Calculate tax with safety checks
+            const taxPercent = parseFloat(this.selectedTax) || 0;
+            this.taxAmount = (afterDiscount * taxPercent) / 100;
             
             this.finalTotal = afterDiscount + this.taxAmount;
+
+            // Ensure all values are numbers, not NaN
+            this.subtotal = isNaN(this.subtotal) ? 0 : this.subtotal;
+            this.discountAmount = isNaN(this.discountAmount) ? 0 : this.discountAmount;
+            this.taxAmount = isNaN(this.taxAmount) ? 0 : this.taxAmount;
+            this.finalTotal = isNaN(this.finalTotal) ? 0 : this.finalTotal;
+
+            console.log('Totals calculated:', {
+                subtotal: this.subtotal,
+                discountAmount: this.discountAmount,
+                taxAmount: this.taxAmount,
+                finalTotal: this.finalTotal
+            });
         },
 
         filterProduct(productId, productName, categoryId) {
@@ -422,6 +451,13 @@ function cashier() {
                 return;
             }
 
+            // Ensure product price is a valid number
+            const price = parseFloat(product.selling_price) || 0;
+            if (price <= 0) {
+                showToast('Harga produk tidak valid!', 'error');
+                return;
+            }
+
             // Add animation effect
             this.addingProduct = productId;
             setTimeout(() => {
@@ -437,39 +473,44 @@ function cashier() {
             const existingItem = this.cart.find(item => item.product_id == productId);
             
             if (existingItem) {
-                existingItem.quantity += 1;
-                existingItem.total = existingItem.quantity * existingItem.price;
+                existingItem.quantity = parseInt(existingItem.quantity) + 1;
+                existingItem.total = existingItem.quantity * parseFloat(existingItem.price);
                 showToast(`${product.name} +1`, 'success');
             } else {
                 this.cart.push({
                     product_id: productId,
                     name: product.name,
-                    price: product.selling_price,
+                    price: price,
                     quantity: 1,
-                    total: product.selling_price
+                    total: price
                 });
                 showToast(`${product.name} ditambahkan`, 'success');
             }
             
-            this.calculateTotals();
+            console.log('Cart after adding:', this.cart);
         },
 
         removeFromCart(index) {
             const item = this.cart[index];
             this.cart.splice(index, 1);
-            this.calculateTotals();
             showToast(`${item.name} dihapus`, 'info');
         },
 
         updateQuantity(index, newQuantity) {
+            newQuantity = parseInt(newQuantity) || 0;
+            
             if (newQuantity <= 0) {
                 this.removeFromCart(index);
                 return;
             }
             
-            this.cart[index].quantity = newQuantity;
-            this.cart[index].total = newQuantity * this.cart[index].price;
-            this.calculateTotals();
+            const item = this.cart[index];
+            const price = parseFloat(item.price) || 0;
+            
+            item.quantity = newQuantity;
+            item.total = newQuantity * price;
+            
+            console.log('Updated item:', item);
         },
 
         clearCart() {
@@ -479,7 +520,6 @@ function cashier() {
                 this.cart = [];
                 this.selectedDiscount = '';
                 this.selectedTax = '0';
-                this.calculateTotals();
                 showToast('Keranjang dikosongkan', 'info');
             }
         },
@@ -521,7 +561,6 @@ function cashier() {
                     this.paymentMethod = 'cash';
                     this.selectedDiscount = '';
                     this.selectedTax = '0';
-                    this.calculateTotals();
                     
                     showToast(result.message, 'success');
                 } else {
@@ -543,8 +582,9 @@ function cashier() {
         },
 
         formatNumber(number) {
-            if (!number) return '0';
-            return new Intl.NumberFormat('id-ID').format(number);
+            const num = parseFloat(number);
+            if (isNaN(num)) return '0';
+            return new Intl.NumberFormat('id-ID').format(num);
         }
     }
 }

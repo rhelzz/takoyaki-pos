@@ -49,7 +49,7 @@ class ProductController extends Controller
                 $query->orderBy('created_at', 'desc');
         }
         
-        $products = $query->paginate(20);
+        $products = $query->paginate(5);
         
         return view('products.index', compact('products'));
     }

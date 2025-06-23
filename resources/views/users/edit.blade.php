@@ -23,15 +23,15 @@
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Statistik User</h2>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="text-center p-3 bg-blue-50 rounded-lg">
-                <p class="text-2xl font-bold text-blue-600">{{ $user->total_transactions }}</p>
+                <p class="text-2xl font-bold text-blue-600">{{ $user->total_transactions ?? 0 }}</p>
                 <p class="text-sm text-gray-600">Total Transaksi</p>
             </div>
             <div class="text-center p-3 bg-green-50 rounded-lg">
-                <p class="text-lg font-bold text-green-600">{{ number_format($user->total_revenue, 0, ',', '.') }}</p>
+                <p class="text-lg font-bold text-green-600">{{ number_format($user->total_revenue ?? 0, 0, ',', '.') }}</p>
                 <p class="text-sm text-gray-600">Total Pendapatan</p>
             </div>
             <div class="text-center p-3 bg-yellow-50 rounded-lg">
-                <p class="text-2xl font-bold text-yellow-600">{{ $user->this_month_transactions_count }}</p>
+                <p class="text-2xl font-bold text-yellow-600">{{ $user->this_month_transactions_count ?? 0 }}</p>
                 <p class="text-sm text-gray-600">Transaksi Bulan Ini</p>
             </div>
             <div class="text-center p-3 bg-purple-50 rounded-lg">
@@ -102,6 +102,8 @@
                        id="password" 
                        name="password" 
                        minlength="8"
+                       x-model="password"
+                       @input="checkPasswordMatch()"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 pr-12"
                        placeholder="Kosongkan jika tidak ingin mengubah">
                 <button type="button" 
@@ -117,21 +119,34 @@
         </div>
 
         <!-- Confirm Password -->
-        <div class="mb-4" x-show="document.getElementById('password').value.length > 0">
+        <div class="mb-4" x-show="password.length > 0" x-transition>
             <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">
-                Konfirmasi Password Baru
+                Konfirmasi Password Baru <span class="text-red-500">*</span>
             </label>
             <div class="relative">
                 <input type="password" 
                        id="password_confirmation" 
                        name="password_confirmation" 
+                       x-model="passwordConfirmation"
+                       @input="checkPasswordMatch()"
+                       :required="password.length > 0"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 pr-12"
+                       :class="{ 'border-red-500': password.length > 0 && passwordConfirmation.length > 0 && password !== passwordConfirmation }"
                        placeholder="Ketik ulang password baru">
                 <button type="button" 
                         @click="togglePassword('password_confirmation')"
                         class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     <i class="fas fa-eye" id="passwordConfirmationIcon"></i>
                 </button>
+            </div>
+            <!-- Real-time password match indicator -->
+            <div x-show="password.length > 0 && passwordConfirmation.length > 0" x-transition>
+                <p x-show="password === passwordConfirmation" class="text-green-500 text-sm mt-1">
+                    <i class="fas fa-check mr-1"></i>Password cocok
+                </p>
+                <p x-show="password !== passwordConfirmation" class="text-red-500 text-sm mt-1">
+                    <i class="fas fa-times mr-1"></i>Password tidak cocok
+                </p>
             </div>
             @error('password_confirmation')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -169,20 +184,33 @@
 
         <!-- Status -->
         <div class="mb-6">
-            <label class="flex items-center">
-                <input type="checkbox" 
-                       name="is_active" 
-                       value="1" 
-                       {{ old('is_active', $user->is_active) ? 'checked' : '' }}
-                       @if($user->id === auth()->id()) disabled @endif
-                       class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded {{ $user->id === auth()->id() ? 'opacity-50 cursor-not-allowed' : '' }}">
-                <span class="ml-2 text-sm text-gray-700">
-                    User Aktif
-                    @if($user->id === auth()->id())
-                        <span class="text-gray-500">(Tidak dapat menonaktifkan akun sendiri)</span>
-                    @endif
-                </span>
-            </label>
+            @if($user->id === auth()->id())
+                <!-- Untuk user yang sedang login, paksa aktif -->
+                <input type="hidden" name="is_active" value="1">
+                <div class="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <i class="fas fa-shield-alt text-green-600 mr-3"></i>
+                    <div>
+                        <p class="text-sm font-medium text-green-800">Status Akun Anda</p>
+                        <p class="text-xs text-green-600">Akun Anda akan selalu aktif dan tidak dapat dinonaktifkan</p>
+                    </div>
+                    <div class="ml-auto">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check mr-1"></i>Aktif
+                        </span>
+                    </div>
+                </div>
+            @else
+                <!-- Untuk user lain, bisa diubah -->
+                <label class="flex items-center">
+                    <input type="hidden" name="is_active" value="0">
+                    <input type="checkbox" 
+                           name="is_active" 
+                           value="1" 
+                           {{ old('is_active', $user->is_active) ? 'checked' : '' }}
+                           class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                    <span class="ml-2 text-sm text-gray-700">User Aktif</span>
+                </label>
+            @endif
             @error('is_active')
                 <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
             @enderror
@@ -224,7 +252,9 @@
         <!-- Submit Buttons -->
         <div class="flex flex-col lg:flex-row lg:space-x-3 space-y-3 lg:space-y-0">
             <button type="submit" 
-                    class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                    :disabled="password.length > 0 && password !== passwordConfirmation"
+                    :class="password.length > 0 && password !== passwordConfirmation ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'"
+                    class="flex-1 text-white font-medium py-2 px-4 rounded-lg transition-colors">
                 <i class="fas fa-save mr-2"></i>Update User
             </button>
             <a href="{{ route('users.index') }}" 
@@ -249,6 +279,8 @@ function userForm() {
     return {
         name: '{{ old("name", $user->name) }}',
         selectedRole: '{{ old("role", $user->role) }}',
+        password: '',
+        passwordConfirmation: '',
         roleDescription: '',
 
         get avatarInitial() {
@@ -261,6 +293,11 @@ function userForm() {
 
         updateAvatar() {
             // Avatar updates automatically via computed property
+        },
+
+        checkPasswordMatch() {
+            // This method is called on every input to provide real-time feedback
+            return this.password === this.passwordConfirmation;
         },
 
         selectRole(role) {

@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use App\Models\TransactionItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReportController extends Controller
 {
@@ -125,12 +126,30 @@ class ReportController extends Controller
 
     public function busiestHours(Request $request)
     {
-        $startDate = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->subDays(7);
-        $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now();
+        // Set timezone Indonesia untuk semua operasi
+        $timezone = 'Asia/Jakarta';
+        
+        // Perbaiki range tanggal
+        $startDate = $request->start_date 
+            ? Carbon::parse($request->start_date, $timezone)->startOfDay()
+            : Carbon::now($timezone)->subDays(6)->startOfDay(); // 7 hari terakhir = hari ini + 6 hari sebelumnya
 
+        $endDate = $request->end_date
+            ? Carbon::parse($request->end_date, $timezone)->endOfDay()
+            : Carbon::now($timezone)->endOfDay(); // Include sampai akhir hari ini
+
+        // Debug logging (opsional)
+        Log::info('Busiest Hours Filter:', [
+            'start_date' => $startDate->format('Y-m-d H:i:s T'),
+            'end_date' => $endDate->format('Y-m-d H:i:s T'),
+            'timezone' => $timezone,
+            'now_jakarta' => Carbon::now($timezone)->format('Y-m-d H:i:s T')
+        ]);
+
+        // Query dengan timezone conversion
         $busiestHours = Transaction::whereBetween('created_at', [$startDate, $endDate])
             ->select(
-                DB::raw('HOUR(created_at) as hour'),
+                DB::raw('HOUR(CONVERT_TZ(created_at, "+00:00", "+07:00")) as hour'),
                 DB::raw('COUNT(*) as transaction_count'),
                 DB::raw('SUM(total_amount) as revenue'),
                 DB::raw('SUM(net_profit) as profit'),
@@ -140,11 +159,18 @@ class ReportController extends Controller
             ->orderBy('transaction_count', 'desc')
             ->get();
 
+        // Debug transaksi yang ditemukan
+        $totalTransactions = Transaction::whereBetween('created_at', [$startDate, $endDate])->count();
+        Log::info('Transactions found:', [
+            'total_count' => $totalTransactions,
+            'busiest_hours_count' => $busiestHours->count()
+        ]);
+
         // Breakdown per hari dalam minggu
         $dailyPattern = Transaction::whereBetween('created_at', [$startDate, $endDate])
             ->select(
-                DB::raw('DAYNAME(created_at) as day_name'),
-                DB::raw('DAYOFWEEK(created_at) as day_number'),
+                DB::raw('DAYNAME(CONVERT_TZ(created_at, "+00:00", "+07:00")) as day_name'),
+                DB::raw('DAYOFWEEK(CONVERT_TZ(created_at, "+00:00", "+07:00")) as day_number'),
                 DB::raw('COUNT(*) as transaction_count'),
                 DB::raw('SUM(total_amount) as revenue')
             )
@@ -203,9 +229,27 @@ class ReportController extends Controller
 
     public function financialReport(Request $request)
     {
-        $startDate = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
-        $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
+        // Set timezone Indonesia untuk semua operasi
+        $timezone = 'Asia/Jakarta';
+        
+        // Perbaiki range tanggal dengan timezone Indonesia
+        $startDate = $request->start_date 
+            ? Carbon::parse($request->start_date, $timezone)->startOfDay()
+            : Carbon::now($timezone)->startOfMonth()->startOfDay();
 
+        $endDate = $request->end_date
+            ? Carbon::parse($request->end_date, $timezone)->endOfDay()
+            : Carbon::now($timezone)->endOfMonth()->endOfDay();
+
+        // Debug logging (opsional)
+        Log::info('Financial Report Filter:', [
+            'start_date' => $startDate->format('Y-m-d H:i:s T'),
+            'end_date' => $endDate->format('Y-m-d H:i:s T'),
+            'timezone' => $timezone,
+            'now_jakarta' => Carbon::now($timezone)->format('Y-m-d H:i:s T')
+        ]);
+
+        // Query dengan timezone yang tepat
         $transactions = Transaction::whereBetween('created_at', [$startDate, $endDate])->get();
 
         $summary = [
@@ -220,10 +264,10 @@ class ReportController extends Controller
             'profit_margin' => $transactions->sum('total_amount') > 0 ? ($transactions->sum('net_profit') / $transactions->sum('total_amount')) * 100 : 0
         ];
 
-        // Breakdown harian
+        // Breakdown harian dengan timezone conversion
         $dailyData = Transaction::whereBetween('created_at', [$startDate, $endDate])
             ->select(
-                DB::raw('DATE(created_at) as date'),
+                DB::raw('DATE(CONVERT_TZ(created_at, "+00:00", "+07:00")) as date'),
                 DB::raw('COUNT(*) as transaction_count'),
                 DB::raw('SUM(total_amount) as revenue'),
                 DB::raw('SUM(total_cost) as cost'),
@@ -234,7 +278,7 @@ class ReportController extends Controller
             ->orderBy('date')
             ->get();
 
-        // Payment method analysis
+        // Payment method analysis dengan timezone
         $paymentAnalysis = Transaction::whereBetween('created_at', [$startDate, $endDate])
             ->select(
                 'payment_method',
@@ -245,7 +289,7 @@ class ReportController extends Controller
             ->groupBy('payment_method')
             ->get();
 
-        // Tax and discount analysis
+        // Tax and discount analysis dengan timezone
         $taxDiscountAnalysis = [
             'transactions_with_discount' => Transaction::whereBetween('created_at', [$startDate, $endDate])
                 ->where('discount_percentage', '>', 0)->count(),
@@ -254,6 +298,13 @@ class ReportController extends Controller
             'avg_discount_percentage' => Transaction::whereBetween('created_at', [$startDate, $endDate])
                 ->where('discount_percentage', '>', 0)->avg('discount_percentage'),
         ];
+
+        // Debug informasi
+        Log::info('Financial Report Data:', [
+            'transactions_found' => $transactions->count(),
+            'date_range_days' => $startDate->diffInDays($endDate) + 1,
+            'total_revenue' => $summary['total_revenue']
+        ]);
 
         return view('reports.financial', compact(
             'startDate', 
