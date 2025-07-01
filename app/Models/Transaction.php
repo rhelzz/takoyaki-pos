@@ -22,7 +22,9 @@ class Transaction extends Model
         'total_amount',
         'gross_profit',
         'net_profit',
-        'payment_method'
+        'payment_method',
+        'customer_money',
+        'change_amount'
     ];
 
     protected $casts = [
@@ -35,6 +37,8 @@ class Transaction extends Model
         'total_amount' => 'decimal:2',
         'gross_profit' => 'decimal:2',
         'net_profit' => 'decimal:2',
+        'customer_money' => 'decimal:2',
+        'change_amount' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -43,7 +47,9 @@ class Transaction extends Model
         'profit_margin',
         'formatted_total_amount',
         'formatted_profit',
-        'payment_method_label'
+        'payment_method_label',
+        'formatted_customer_money',
+        'formatted_change_amount'
     ];
 
     public function user()
@@ -129,12 +135,25 @@ class Transaction extends Model
         return 'Rp ' . number_format($this->net_profit, 0, ',', '.');
     }
 
+    public function getFormattedCustomerMoneyAttribute()
+    {
+        return $this->customer_money ? 'Rp ' . number_format($this->customer_money, 0, ',', '.') : '-';
+    }
+
+    public function getFormattedChangeAmountAttribute()
+    {
+        return 'Rp ' . number_format($this->change_amount, 0, ',', '.');
+    }
+
     public function getPaymentMethodLabelAttribute()
     {
         return match($this->payment_method) {
             'cash' => 'Tunai',
             'card' => 'Kartu',
             'digital' => 'Digital',
+            'dana' => 'DANA',
+            'gopay' => 'GoPay',
+            'ovo' => 'OVO',
             default => ucfirst($this->payment_method)
         };
     }
@@ -175,6 +194,16 @@ class Transaction extends Model
         return $this->tax_percentage > 0;
     }
 
+    public function hasChange()
+    {
+        return $this->change_amount > 0;
+    }
+
+    public function isCashPayment()
+    {
+        return $this->payment_method === 'cash';
+    }
+
     // Format untuk receipt/struk
     public function getReceiptDataAttribute()
     {
@@ -194,7 +223,9 @@ class Transaction extends Model
             'discount' => $this->discount_amount,
             'tax' => $this->tax_amount,
             'total' => $this->total_amount,
-            'payment_method' => $this->payment_method_label
+            'payment_method' => $this->payment_method_label,
+            'customer_money' => $this->customer_money,
+            'change_amount' => $this->change_amount
         ];
     }
 }

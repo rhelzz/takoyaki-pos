@@ -24,7 +24,9 @@ return new class extends Migration
             $table->decimal('total_amount', 12, 2);
             $table->decimal('gross_profit', 12, 2); // Laba kotor (sebelum pajak)
             $table->decimal('net_profit', 12, 2); // Laba bersih (setelah pajak)
-            $table->enum('payment_method', ['cash', 'card', 'digital']);
+            $table->enum('payment_method', ['cash', 'card', 'digital', 'dana', 'gopay', 'ovo']);
+            $table->decimal('customer_money', 12, 2)->nullable(); // Uang yang dibayar customer
+            $table->decimal('change_amount', 12, 2)->default(0); // Kembalian
             $table->timestamps();
         });
     }

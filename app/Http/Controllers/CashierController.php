@@ -52,7 +52,7 @@ class CashierController extends Controller
             // Default templates karena mungkin tabel belum ada
             $discountTemplates = collect([
                 (object)['id' => 1, 'percentage' => 5, 'display_name' => 'Diskon 5%'],
-                (object)['id' => 2, 'percentage' => 10, 'display_name' => 'Diskon 10%'],
+                (object)['id' => 2, 'percentage' => 11, 'display_name' => 'Diskon 11%'],
                 (object)['id' => 3, 'percentage' => 15, 'display_name' => 'Diskon 15%'],
             ]);
             
@@ -131,7 +131,9 @@ class CashierController extends Controller
             'cart.*.price' => 'required|numeric|min:0',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'tax_percentage' => 'nullable|numeric|min:0|max:100',
-            'payment_method' => 'required|in:cash,card,digital'
+            'payment_method' => 'required|in:cash,card,digital,dana,gopay,ovo',
+            'customer_money' => 'nullable|numeric|min:0',
+            'change_amount' => 'nullable|numeric|min:0'
         ]);
 
         try {
@@ -189,6 +191,23 @@ class CashierController extends Controller
             $grossProfit = $subtotal - $totalCost;
             $netProfit = $grossProfit - $discountAmount; // Profit setelah diskon
 
+            // Handle cash payment - customer money dan kembalian
+            $customerMoney = null;
+            $changeAmount = 0;
+            
+            if ($request->payment_method === 'cash') {
+                $customerMoney = (float) ($request->customer_money ?? 0);
+                $changeAmount = (float) ($request->change_amount ?? 0);
+                
+                // Validasi uang customer untuk cash payment
+                if ($customerMoney < $totalAmount) {
+                    throw new \Exception('Uang customer tidak mencukupi');
+                }
+                
+                // Hitung ulang kembalian untuk memastikan akurasi
+                $changeAmount = $customerMoney - $totalAmount;
+            }
+
             // Buat transaksi
             $transaction = Transaction::create([
                 'transaction_code' => $transactionCode,
@@ -202,8 +221,9 @@ class CashierController extends Controller
                 'total_amount' => $totalAmount,
                 'gross_profit' => $grossProfit,
                 'net_profit' => $netProfit,
-                'profit_margin' => $totalAmount > 0 ? ($netProfit / $totalAmount) * 100 : 0,
-                'payment_method' => $request->payment_method
+                'payment_method' => $request->payment_method,
+                'customer_money' => $customerMoney,
+                'change_amount' => $changeAmount
             ]);
 
             // Buat item transaksi
@@ -218,6 +238,9 @@ class CashierController extends Controller
             Log::info('Transaction processed successfully', [
                 'transaction_code' => $transactionCode,
                 'total_amount' => $totalAmount,
+                'payment_method' => $request->payment_method,
+                'customer_money' => $customerMoney,
+                'change_amount' => $changeAmount,
                 'user_id' => Auth::id()
             ]);
 
@@ -229,7 +252,9 @@ class CashierController extends Controller
                     'total_amount' => $totalAmount,
                     'profit' => $netProfit,
                     'items_count' => count($items),
-                    'payment_method' => $request->payment_method
+                    'payment_method' => $request->payment_method,
+                    'customer_money' => $customerMoney,
+                    'change_amount' => $changeAmount
                 ]
             ]);
 

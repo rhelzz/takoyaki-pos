@@ -71,7 +71,7 @@
                         </select>
                     </div>
 
-                    <!-- Payment Method -->
+                    <!-- Payment Method - Updated with new options -->
                     <div class="lg:col-span-1">
                         <label class="block text-xs font-medium text-gray-700 mb-1 lg:hidden">Pembayaran</label>
                         <select name="payment_method" 
@@ -79,7 +79,10 @@
                             <option value="">Semua Pembayaran</option>
                             <option value="cash" {{ request('payment_method') === 'cash' ? 'selected' : '' }}>Tunai</option>
                             <option value="card" {{ request('payment_method') === 'card' ? 'selected' : '' }}>Kartu</option>
-                            <option value="digital" {{ request('payment_method') === 'digital' ? 'selected' : '' }}>Digital</option>
+                            <option value="dana" {{ request('payment_method') === 'dana' ? 'selected' : '' }}>DANA</option>
+                            <option value="gopay" {{ request('payment_method') === 'gopay' ? 'selected' : '' }}>GoPay</option>
+                            <option value="ovo" {{ request('payment_method') === 'ovo' ? 'selected' : '' }}>OVO</option>
+                            <option value="digital" {{ request('payment_method') === 'digital' ? 'selected' : '' }}>E-Wallet Lainnya</option>
                         </select>
                     </div>
 
@@ -141,10 +144,53 @@
                                     </td>
                                     <td class="px-4 py-4">
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
-                                            {{ $transaction->payment_method === 'cash' ? 'bg-green-100 text-green-800' : 
-                                               ($transaction->payment_method === 'card' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800') }}">
+                                            @switch($transaction->payment_method)
+                                                @case('cash')
+                                                    bg-green-100 text-green-800
+                                                    @break
+                                                @case('card')
+                                                    bg-blue-100 text-blue-800
+                                                    @break
+                                                @case('dana')
+                                                    bg-blue-100 text-blue-800
+                                                    @break
+                                                @case('gopay')
+                                                    bg-green-100 text-green-800
+                                                    @break
+                                                @case('ovo')
+                                                    bg-purple-100 text-purple-800
+                                                    @break
+                                                @default
+                                                    bg-gray-100 text-gray-800
+                                            @endswitch">
+                                            @switch($transaction->payment_method)
+                                                @case('cash')
+                                                    <i class="fas fa-money-bill-wave mr-1"></i>
+                                                    @break
+                                                @case('card')
+                                                    <i class="fas fa-credit-card mr-1"></i>
+                                                    @break
+                                                @case('dana')
+                                                    <i class="fas fa-mobile-alt mr-1"></i>
+                                                    @break
+                                                @case('gopay')
+                                                    <i class="fas fa-wallet mr-1"></i>
+                                                    @break
+                                                @case('ovo')
+                                                    <i class="fas fa-coins mr-1"></i>
+                                                    @break
+                                                @default
+                                                    <i class="fas fa-qrcode mr-1"></i>
+                                            @endswitch
                                             {{ $transaction->payment_method_label }}
                                         </span>
+                                        
+                                        <!-- Show change for cash payments -->
+                                        @if($transaction->payment_method === 'cash' && $transaction->hasChange())
+                                            <div class="text-xs text-green-600 mt-1">
+                                                Kembalian: {{ $transaction->formatted_change_amount }}
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-4">
                                         <div class="font-semibold text-green-600">{{ $transaction->formatted_total_amount }}</div>
@@ -183,7 +229,7 @@
                     </table>
                 </div>
 
-                <!-- Mobile Cards - Completely Redesigned -->
+                <!-- Mobile Cards - Updated for new payment methods -->
                 <div class="lg:hidden">
                     @foreach($transactions as $transaction)
                         <div class="border-b border-gray-100 last:border-b-0">
@@ -220,13 +266,39 @@
                                     </div>
                                 </div>
 
-                                <!-- Payment Method -->
+                                <!-- Payment Method & Change -->
                                 <div class="flex items-center justify-between">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
-                                        {{ $transaction->payment_method === 'cash' ? 'bg-green-100 text-green-800' : 
-                                           ($transaction->payment_method === 'card' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800') }}">
-                                        {{ $transaction->payment_method_label }}
-                                    </span>
+                                    <div>
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                                            @switch($transaction->payment_method)
+                                                @case('cash')
+                                                    bg-green-100 text-green-800
+                                                    @break
+                                                @case('card')
+                                                    bg-blue-100 text-blue-800
+                                                    @break
+                                                @case('dana')
+                                                    bg-blue-100 text-blue-800
+                                                    @break
+                                                @case('gopay')
+                                                    bg-green-100 text-green-800
+                                                    @break
+                                                @case('ovo')
+                                                    bg-purple-100 text-purple-800
+                                                    @break
+                                                @default
+                                                    bg-gray-100 text-gray-800
+                                            @endswitch">
+                                            {{ $transaction->payment_method_label }}
+                                        </span>
+                                        
+                                        <!-- Show change for cash payments -->
+                                        @if($transaction->payment_method === 'cash' && $transaction->hasChange())
+                                            <div class="text-xs text-green-600 mt-1">
+                                                Kembalian: {{ $transaction->formatted_change_amount }}
+                                            </div>
+                                        @endif
+                                    </div>
 
                                     <!-- Action Buttons -->
                                     <div class="flex space-x-4">

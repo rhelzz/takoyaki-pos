@@ -119,21 +119,66 @@
                         </div>
                         <div>
                             <p class="font-medium text-gray-800">{{ $transaction->user->name }}</p>
-                            <p class="text-xs text-gray-500">{{ $transaction->user->role_label }}</p>
+                            <p class="text-xs text-gray-500">{{ $transaction->user->role_label ?? 'Kasir' }}</p>
                         </div>
                     </div>
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                        {{ $transaction->payment_method === 'cash' ? 'bg-green-100 text-green-800' : 
-                           ($transaction->payment_method === 'card' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800') }}">
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                            @switch($transaction->payment_method)
+                                @case('cash')
+                                    bg-green-100 text-green-800
+                                    @break
+                                @case('card')
+                                    bg-blue-100 text-blue-800
+                                    @break
+                                @case('dana')
+                                    bg-blue-100 text-blue-800
+                                    @break
+                                @case('gopay')
+                                    bg-green-100 text-green-800
+                                    @break
+                                @case('ovo')
+                                    bg-purple-100 text-purple-800
+                                    @break
+                                @default
+                                    bg-gray-100 text-gray-800
+                            @endswitch">
+                            @switch($transaction->payment_method)
+                                @case('cash')
+                                    <i class="fas fa-money-bill-wave mr-1"></i>
+                                    @break
+                                @case('card')
+                                    <i class="fas fa-credit-card mr-1"></i>
+                                    @break
+                                @case('dana')
+                                    <i class="fas fa-mobile-alt mr-1"></i>
+                                    @break
+                                @case('gopay')
+                                    <i class="fas fa-wallet mr-1"></i>
+                                    @break
+                                @case('ovo')
+                                    <i class="fas fa-coins mr-1"></i>
+                                    @break
+                                @default
+                                    <i class="fas fa-qrcode mr-1"></i>
+                            @endswitch
+                            {{ $transaction->payment_method_label }}
+                        </span>
+                        
+                        <!-- Show customer money and change for cash payments -->
                         @if($transaction->payment_method === 'cash')
-                            <i class="fas fa-money-bill-wave mr-1"></i>
-                        @elseif($transaction->payment_method === 'card')
-                            <i class="fas fa-credit-card mr-1"></i>
-                        @else
-                            <i class="fas fa-mobile-alt mr-1"></i>
+                            @if($transaction->customer_money)
+                                <div class="text-xs text-gray-600 mt-1">
+                                    Bayar: {{ $transaction->formatted_customer_money }}
+                                </div>
+                            @endif
+                            @if($transaction->hasChange())
+                                <div class="text-xs text-green-600">
+                                    Kembalian: {{ $transaction->formatted_change_amount }}
+                                </div>
+                            @endif
                         @endif
-                        {{ $transaction->payment_method_label }}
-                    </span>
+                    </div>
                 </div>
 
                 <!-- Additional Info Grid -->
@@ -268,6 +313,25 @@
                             <span class="font-bold text-lg text-green-600">{{ $transaction->formatted_total_amount }}</span>
                         </div>
                     </div>
+                    
+                    <!-- Cash Payment Details -->
+                    @if($transaction->payment_method === 'cash')
+                        <div class="border-t border-gray-200 pt-3 space-y-2">
+                            @if($transaction->customer_money)
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Uang Customer:</span>
+                                    <span class="font-medium text-gray-800">{{ $transaction->formatted_customer_money }}</span>
+                                </div>
+                            @endif
+                            
+                            @if($transaction->hasChange())
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Kembalian:</span>
+                                    <span class="font-medium text-green-600">{{ $transaction->formatted_change_amount }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
