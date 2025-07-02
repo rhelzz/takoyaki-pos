@@ -43,6 +43,33 @@ class StockSummaryController extends Controller
             });
         }
 
-        return view('stock-summary.index', compact('stockSummary'));
+        // Convert ke collection untuk pagination
+        $collection = collect($stockSummary);
+        
+        // Manual pagination
+        $perPage = 10;
+        $currentPage = $request->get('page', 1);
+        $offset = ($currentPage - 1) * $perPage;
+        
+        $paginatedItems = $collection->slice($offset, $perPage)->values();
+        
+        // Create paginator instance
+        $stockSummary = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedItems,
+            $collection->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
+
+        // Summary stats
+        $totalItems = $collection->count();
+        $lowStock = $collection->where('stock_now', '<=', 3)->count(); // Changed to 3
+        $outOfStock = $collection->where('stock_now', '<=', 0)->count();
+
+        return view('stock-summary.index', compact('stockSummary', 'totalItems', 'lowStock', 'outOfStock'));
     }
 }
