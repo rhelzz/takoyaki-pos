@@ -9,6 +9,10 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\DailyExpenseController;
+use App\Http\Controllers\StockMasukController;
+use App\Http\Controllers\StockKeluarController;
+use App\Http\Controllers\StockSummaryController;
 
 // Auth routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -78,5 +82,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/financial', [ReportController::class, 'financialReport'])->name('financial');
             Route::get('/export/daily', [ReportController::class, 'exportDaily'])->name('export.daily');
         });
+    });
+
+    Route::middleware(['role:admin,manager'])->group(function () {
+        // Daily Expenses Routes
+        Route::resource('daily-expenses', DailyExpenseController::class);
+        
+        // Stock Management Routes
+        Route::resource('stock-masuk', StockMasukController::class);
+        Route::resource('stock-keluar', StockKeluarController::class);
+        Route::get('stock-summary', [StockSummaryController::class, 'index'])->name('stock-summary.index');
     });
 });
