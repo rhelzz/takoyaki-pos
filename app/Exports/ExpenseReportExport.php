@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -25,121 +24,68 @@ class ExpenseReportExport implements FromCollection, WithHeadings, WithTitle, Wi
 
     public function collection()
     {
-        // Karena belum ada tabel expenses terpisah, kita ambil dari total_cost transactions
-        $dailyExpenses = Transaction::whereMonth('created_at', $this->month)
-            ->whereYear('created_at', $this->year)
-            ->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_cost) as daily_cost'),
-                DB::raw('COUNT(*) as transaction_count')
-            )
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date')
+        $expenses = DB::table('daily_expenses')
+            ->whereMonth('tanggal', $this->month)
+            ->whereYear('tanggal', $this->year)
+            ->orderBy('tanggal')
             ->get();
 
-        $data = collect();
-
-        // Header
-        $data->push([
-            'LAPORAN PENGELUARAN BULANAN',
-            '',
-            '',
-            ''
-        ]);
-
-        $data->push([
-            'Periode: ' . date('F Y', mktime(0, 0, 0, $this->month, 1, $this->year)),
-            '',
-            '',
-            ''
-        ]);
-
-        $data->push(['', '', '', '']);
-
-        // Headers
-        $data->push([
-            'Tanggal',
-            'Jumlah Transaksi',
-            'Total Cost (Modal)',
-            'Rata-rata Cost per Transaksi'
-        ]);
-
-        // Data harian
-        foreach ($dailyExpenses as $expense) {
-            $avgCostPerTransaction = $expense->transaction_count > 0 ? 
-                $expense->daily_cost / $expense->transaction_count : 0;
-
-            $data->push([
-                date('d/m/Y', strtotime($expense->date)),
-                number_format($expense->transaction_count),
-                'Rp ' . number_format($expense->daily_cost, 0, ',', '.'),
-                'Rp ' . number_format($avgCostPerTransaction, 0, ',', '.')
+        $rows = collect();
+        foreach($expenses as $exp) {
+            $rows->push([
+                date('d/m/Y', strtotime($exp->tanggal)),
+                $exp->nama_pengeluaran,
+                $exp->deskripsi,
+                'Rp '.number_format($exp->total, 0, ',', '.'),
+                ''
             ]);
+            // Breakdown per item
+            $items = DB::table('expense_items')->where('daily_expense_id', $exp->id)->get();
+            foreach($items as $itm) {
+                $rows->push([
+                    '',
+                    '- '.$itm->nama_bahan,
+                    $itm->qty.' x Rp '.number_format($itm->harga_satuan,0,',','.'),
+                    'Rp '.number_format($itm->subtotal,0,',','.'),
+                    ''
+                ]);
+            }
         }
 
         // Summary
-        $totalCost = $dailyExpenses->sum('daily_cost');
-        $totalTransactions = $dailyExpenses->sum('transaction_count');
-        $avgDailyCost = $dailyExpenses->count() > 0 ? $totalCost / $dailyExpenses->count() : 0;
-
-        $data->push(['', '', '', '']);
-        $data->push([
-            'SUMMARY BULANAN',
-            '',
-            '',
-            ''
-        ]);
-
-        $data->push([
-            'Total Pengeluaran (Modal)',
-            '',
-            'Rp ' . number_format($totalCost, 0, ',', '.'),
-            ''
-        ]);
-
-        $data->push([
-            'Total Transaksi',
-            number_format($totalTransactions),
-            '',
-            ''
-        ]);
-
-        $data->push([
-            'Rata-rata Pengeluaran Harian',
-            '',
-            'Rp ' . number_format($avgDailyCost, 0, ',', '.'),
-            ''
-        ]);
-
-        return $data;
+        $total = $expenses->sum('total');
+        $rows->push(['','','TOTAL', 'Rp '.number_format($total,0,',','.'), '']);
+        return $rows;
     }
 
     public function headings(): array
     {
-        return [];
+        return [
+            ['LAPORAN PENGELUARAN'],
+            ['Periode: ' . date('F Y', mktime(0,0,0,$this->month,1,$this->year))],
+            [''],
+            ['Tanggal','Nama Pengeluaran','Deskripsi/Detail','Total','']
+        ];
     }
 
     public function title(): string
     {
-        return 'Pengeluaran Bulanan';
+        return 'Pengeluaran';
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            2 => ['font' => ['bold' => true, 'size' => 12]],
-            4 => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E2E8F0']]],
+            1 => ['font'=>['bold'=>true,'size'=>16]],
+            2 => ['font'=>['bold'=>true,'size'=>12]],
+            4 => ['font'=>['bold'=>true], 'fill'=>['fillType'=>Fill::FILL_SOLID, 'color'=>['rgb'=>'E2E8F0']]],
         ];
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 15,
-            'B' => 18,
-            'C' => 20,
-            'D' => 25,
+            'A'=>15, 'B'=>28, 'C'=>25, 'D'=>18, 'E'=>8
         ];
     }
 }

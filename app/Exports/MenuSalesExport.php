@@ -3,7 +3,6 @@
 namespace App\Exports;
 
 use App\Models\TransactionItem;
-use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -36,7 +35,6 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
                 'categories.name as category',
                 'products.cost_price',
                 'products.selling_price',
-                'products.quantity_per_serving',
                 DB::raw('SUM(transaction_items.quantity) as total_quantity'),
                 DB::raw('SUM(transaction_items.total_price) as total_revenue'),
                 DB::raw('SUM(transaction_items.total_cost) as total_cost'),
@@ -44,21 +42,29 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
                 DB::raw('AVG(transaction_items.unit_price) as avg_price')
             )
             ->groupBy(
-                'products.id', 
-                'products.name', 
+                'products.id',
+                'products.name',
                 'categories.name',
                 'products.cost_price',
-                'products.selling_price',
-                'products.quantity_per_serving'
+                'products.selling_price'
             )
             ->orderBy('total_quantity', 'desc')
             ->get();
 
-        return $menuSales->map(function ($item) {
-            $profitMargin = $item->total_revenue > 0 ? 
-                round(($item->total_profit / $item->total_revenue) * 100, 2) : 0;
+        $totalRow = [
+            'TOTAL',
+            '',
+            $menuSales->sum('total_quantity'),
+            'Rp ' . number_format($menuSales->sum('total_revenue'), 0, ',', '.'),
+            'Rp ' . number_format($menuSales->sum('total_cost'), 0, ',', '.'),
+            'Rp ' . number_format($menuSales->sum('total_profit'), 0, ',', '.'),
+            '',
+            '', '', ''
+        ];
 
-            $estimatedMaterialUsed = $item->total_quantity * $item->quantity_per_serving;
+        $data = $menuSales->map(function ($item) {
+            $profitMargin = $item->total_revenue > 0 ?
+                round(($item->total_profit / $item->total_revenue) * 100, 2) : 0;
 
             return [
                 $item->menu_name,
@@ -71,9 +77,13 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
                 $profitMargin . '%',
                 'Rp ' . number_format($item->cost_price, 0, ',', '.'),
                 'Rp ' . number_format($item->selling_price, 0, ',', '.'),
-                number_format($estimatedMaterialUsed) . ' unit'
             ];
         });
+
+        // Tambahkan baris total di akhir data
+        $data->push($totalRow);
+
+        return $data;
     }
 
     public function headings(): array
@@ -93,7 +103,6 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
                 'Margin (%)',
                 'Harga Modal/Unit',
                 'Harga Jual/Unit',
-                'Estimasi Bahan Terpakai'
             ]
         ];
     }
@@ -105,11 +114,21 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
 
     public function styles(Worksheet $sheet)
     {
-        return [
+        // Styling header
+        $styleArray = [
             1 => ['font' => ['bold' => true, 'size' => 16]],
             2 => ['font' => ['bold' => true, 'size' => 12]],
             4 => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E2E8F0']]],
         ];
+
+        // Styling baris total (baris terakhir)
+        $lastRow = 4 + $sheet->getHighestRow() - 3;
+        $styleArray[$lastRow] = [
+            'font' => ['bold' => true, 'color' => ['rgb' => '0A0A0A']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'FFF9C4']],
+        ];
+
+        return $styleArray;
     }
 
     public function columnWidths(): array
@@ -125,7 +144,6 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
             'H' => 12,
             'I' => 15,
             'J' => 15,
-            'K' => 20,
         ];
     }
 }

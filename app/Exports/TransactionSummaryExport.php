@@ -9,7 +9,6 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class TransactionSummaryExport implements FromCollection, WithHeadings, WithTitle, WithStyles, WithColumnWidths
@@ -25,87 +24,81 @@ class TransactionSummaryExport implements FromCollection, WithHeadings, WithTitl
 
     public function collection()
     {
-        $transactions = Transaction::whereMonth('created_at', $this->month)
-                                 ->whereYear('created_at', $this->year)
-                                 ->get();
+        $transactions = Transaction::with(['user','items.product'])
+            ->whereMonth('created_at', $this->month)
+            ->whereYear('created_at', $this->year)
+            ->orderBy('created_at')
+            ->get();
 
-        $totalTransactions = $transactions->count();
-        $onlineTransactions = $transactions->where('tax_amount', '>', 0)->count();
-        $totalRevenue = $transactions->sum('total_amount');
-        $totalCost = $transactions->sum('total_cost');
-        $totalProfit = $transactions->sum('net_profit');
-        $totalTax = $transactions->sum('tax_amount');
+        $rows = collect();
 
-        return collect([
-            [
-                'Metrik',
-                'Nilai',
-                'Keterangan'
-            ],
-            [
-                'Total Transaksi',
-                number_format($totalTransactions),
-                'Semua transaksi dalam bulan ini'
-            ],
-            [
-                'Transaksi Online (Berpajak)',
-                number_format($onlineTransactions),
-                'Transaksi yang dikenakan pajak'
-            ],
-            [
-                'Total Pendapatan',
-                'Rp ' . number_format($totalRevenue, 0, ',', '.'),
-                'Gross revenue'
-            ],
-            [
-                'Total Modal',
-                'Rp ' . number_format($totalCost, 0, ',', '.'),
-                'Total cost of goods sold'
-            ],
-            [
-                'Total Keuntungan',
-                'Rp ' . number_format($totalProfit, 0, ',', '.'),
-                'Net profit setelah dikurangi pajak'
-            ],
-            [
-                'Total Pajak',
-                'Rp ' . number_format($totalTax, 0, ',', '.'),
-                'Total pajak yang dikumpulkan'
-            ],
-        ]);
+        foreach($transactions as $trx) {
+            $metode = $trx->payment_method;
+            $tipe = $trx->tax_amount > 0 ? 'Online' : 'Offline';
+
+            $order_detail = $trx->items->map(function($item){
+                return $item->product->name.' ('.$item->quantity.')';
+            })->implode(', ');
+
+            $rows->push([
+                $trx->created_at->format('d/m/Y H:i'),
+                $trx->transaction_code,
+                optional($trx->user)->name ?? '-',
+                is_null($trx->customer_money) ? '-' : 'Rp '.number_format($trx->customer_money, 0, ',', '.'),
+                'Rp '.number_format($trx->change_amount, 0, ',', '.'),
+                'Rp '.number_format($trx->total_amount, 0, ',', '.'),
+                'Rp '.number_format($trx->tax_amount, 0, ',', '.'),
+                'Rp '.number_format($trx->total_cost, 0, ',', '.'),
+                'Rp '.number_format($trx->net_profit, 0, ',', '.'),
+                ucfirst($metode),
+                $tipe,
+                $order_detail,
+            ]);
+        }
+        return $rows;
     }
 
     public function headings(): array
     {
         return [
-            ['LAPORAN SUMMARY TRANSAKSI BULANAN'],
-            ['Periode: ' . date('F Y', mktime(0, 0, 0, $this->month, 1, $this->year))],
-            ['Generated: ' . now()->format('d/m/Y H:i:s')],
+            ['DAFTAR TRANSAKSI PER BULAN'],
+            ['Periode: ' . date('F Y', mktime(0,0,0,$this->month,1,$this->year))],
             [''],
+            [
+                'Tanggal',
+                'Kode',
+                'Kasir',
+                'Uang Pelanggan',
+                'Kembalian',
+                'Uang Masuk',
+                'Pajak',
+                'Modal',
+                'Net Profit',
+                'Metode Pembayaran',
+                'Online/Offline',
+                'Menu & Qty'
+            ]
         ];
     }
 
     public function title(): string
     {
-        return 'Summary Transaksi';
+        return 'List Transaksi';
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            2 => ['font' => ['bold' => true, 'size' => 12]],
-            3 => ['font' => ['italic' => true]],
-            5 => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E2E8F0']]],
+            1 => ['font'=>['bold'=>true,'size'=>16]],
+            2 => ['font'=>['bold'=>true,'size'=>12]],
+            4 => ['font'=>['bold'=>true], 'fill'=>['fillType'=>Fill::FILL_SOLID, 'color'=>['rgb'=>'E2E8F0']]],
         ];
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 25,
-            'B' => 20,
-            'C' => 35,
+            'A'=>18,'B'=>15,'C'=>18,'D'=>18,'E'=>12,'F'=>16,'G'=>12,'H'=>15,'I'=>16,'J'=>16,'K'=>15,'L'=>40
         ];
     }
 }
