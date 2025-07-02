@@ -12,6 +12,8 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class StockMovementExport implements FromCollection, WithHeadings, WithTitle, WithStyles, WithColumnWidths
 {
@@ -260,6 +262,88 @@ class StockMovementExport implements FromCollection, WithHeadings, WithTitle, Wi
             ''
         ]);
 
+        $data->push(['', '', '', '', '', '']);
+
+        // SECTION 4: STOCK SAAT INI (ESTIMASI)
+        $data->push([
+            'STOCK SAAT INI (ESTIMASI BERDASARKAN PERGERAKAN)',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ]);
+
+        $data->push([
+            'Nama Barang',
+            'Stock Masuk',
+            'Stock Keluar Manual',
+            'Stock Keluar Sales',
+            'Stock Tersisa',
+            'Status'
+        ]);
+
+        // Calculate current stock per item
+        $allItems = collect();
+        
+        // Add items from stock masuk
+        foreach ($stockMasuk as $item) {
+            $existing = $allItems->firstWhere('nama_barang', $item->nama_barang);
+            if ($existing) {
+                $existing['stock_masuk'] += $item->qty;
+            } else {
+                $allItems->push([
+                    'nama_barang' => $item->nama_barang,
+                    'stock_masuk' => $item->qty,
+                    'stock_keluar' => 0,
+                    'stock_sales' => 0
+                ]);
+            }
+        }
+
+        // Add items from stock keluar
+        foreach ($stockKeluar as $item) {
+            $existing = $allItems->firstWhere('nama_barang', $item->nama_barang);
+            if ($existing) {
+                $existing['stock_keluar'] += $item->qty;
+            } else {
+                $allItems->push([
+                    'nama_barang' => $item->nama_barang,
+                    'stock_masuk' => 0,
+                    'stock_keluar' => $item->qty,
+                    'stock_sales' => 0
+                ]);
+            }
+        }
+
+        // Add estimated stock used from sales (this is more complex as we need to match product names to material names)
+        // For now, we'll show this as a separate calculation
+
+        if ($allItems->count() > 0) {
+            foreach ($allItems as $item) {
+                $currentStock = $item['stock_masuk'] - $item['stock_keluar'] - $item['stock_sales'];
+                $status = $currentStock > 0 ? 'Tersedia' : ($currentStock == 0 ? 'Habis' : 'Kekurangan');
+                
+                $data->push([
+                    $item['nama_barang'],
+                    number_format($item['stock_masuk']),
+                    number_format($item['stock_keluar']),
+                    number_format($item['stock_sales']),
+                    number_format($currentStock),
+                    $status
+                ]);
+            }
+        } else {
+            $data->push([
+                'Tidak ada data untuk menghitung stock saat ini',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ]);
+        }
+
         return $data;
     }
 
@@ -275,11 +359,28 @@ class StockMovementExport implements FromCollection, WithHeadings, WithTitle, Wi
 
     public function styles(Worksheet $sheet)
     {
+        $sheet->getStyle('A:F')->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+        
         return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            2 => ['font' => ['bold' => true, 'size' => 12]],
-            5 => ['font' => ['bold' => true, 'size' => 14], 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E3F2FD']]],
-            6 => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E2E8F0']]],
+            1 => [
+                'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1F2937']], 
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'DBEAFE']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ],
+            2 => [
+                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '374151']], 
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'F8F9FA']]
+            ],
+            5 => [
+                'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '1F2937']], 
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'D1FAE5']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ],
+            6 => [
+                'font' => ['bold' => true, 'size' => 11], 
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E2E8F0']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ]
         ];
     }
 

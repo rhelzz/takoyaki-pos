@@ -12,6 +12,8 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithStyles, WithColumnWidths
 {
@@ -105,10 +107,23 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
 
     public function styles(Worksheet $sheet)
     {
+        $sheet->getStyle('A:K')->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+        
         return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            2 => ['font' => ['bold' => true, 'size' => 12]],
-            4 => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E2E8F0']]],
+            1 => [
+                'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1F2937']], 
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'ECFDF5']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ],
+            2 => [
+                'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '374151']], 
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'F8F9FA']]
+            ],
+            4 => [
+                'font' => ['bold' => true, 'size' => 11], 
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => 'E2E8F0']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ]
         ];
     }
 
