@@ -107,8 +107,6 @@ class MenuSalesExport implements FromCollection, WithHeadings, WithTitle, WithSt
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->getStyle('A:K')->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
-        
         return [
             1 => [
                 'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1F2937']], 

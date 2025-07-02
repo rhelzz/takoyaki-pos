@@ -316,8 +316,6 @@ class TransactionSummaryExport implements FromCollection, WithHeadings, WithTitl
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->getStyle('A:I')->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
-        
         return [
             1 => [
                 'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1F2937']], 

@@ -219,8 +219,6 @@ class ExpenseReportExport implements FromCollection, WithHeadings, WithTitle, Wi
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->getStyle('A:E')->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
-        
         return [
             1 => [
                 'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '1F2937']], 
