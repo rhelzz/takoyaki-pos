@@ -26,6 +26,9 @@ Route::get('/', function () {
 
 // Protected routes
 Route::middleware('auth')->group(function () {
+
+    Route::get('/export/monthly-report', [App\Http\Controllers\ExportController::class, 'monthlyReport'])
+        ->name('export.monthly-report');
     
     // Dashboard - All authenticated users
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
