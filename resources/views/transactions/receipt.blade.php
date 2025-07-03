@@ -2,29 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=220, initial-scale=1.0">
     <title>Receipt - {{ $transaction->transaction_code }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        :root {
+            --receipt-width-mm: 58;
+            --receipt-width-px: 220; /* 58mm x 3.78 ~ 219px */
+        }
         @media print {
-            body { 
-                font-size: 11px; 
-                color: black !important;
+            body {
                 margin: 0;
                 padding: 0;
+                background: #fff !important;
+                color: #000 !important;
+                font-size: 11px;
             }
             .no-print { display: none !important; }
-            .receipt-container { 
-                width: 58mm; 
-                max-width: 58mm;
+            .receipt-container {
+                width: var(--receipt-width-mm)mm !important;
+                max-width: var(--receipt-width-mm)mm !important;
+                min-width: var(--receipt-width-mm)mm !important;
                 margin: 0;
-                padding: 2mm;
+                padding: 2mm 2mm 0 2mm;
                 box-shadow: none;
-                font-family: 'Courier New', monospace;
+                font-family: 'Courier New', Courier, monospace;
             }
-            .receipt-header {
+            .receipt-header,
+            .receipt-footer {
                 text-align: center;
-                margin-bottom: 2mm;
+                margin: 0 0 2mm 0;
             }
             .receipt-section {
                 margin-bottom: 1mm;
@@ -33,48 +40,80 @@
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 0.5mm;
+                white-space: nowrap;
             }
             .receipt-divider {
                 border-top: 1px dashed #000;
                 margin: 1mm 0;
             }
         }
-        
-        /* Mobile/Preview styling */
+        /* Preview/Mobile styling */
+        body {
+            background: #f3f4f6;
+        }
         .receipt-container {
-            width: 220px; /* 58mm in pixels for preview */
-            max-width: 220px;
-            font-family: 'Courier New', monospace;
+            background: #fff;
+            width: var(--receipt-width-px)px;
+            max-width: var(--receipt-width-px)px;
+            min-width: var(--receipt-width-px)px;
+            margin: 0 auto;
+            padding: 12px 8px 0 8px;
+            font-family: 'Courier New', Courier, monospace;
             font-size: 12px;
             line-height: 1.2;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+        .receipt-header,
+        .receipt-footer {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .receipt-section {
+            margin-bottom: 7px;
+        }
+        .receipt-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            white-space: nowrap;
+        }
+        .receipt-divider {
+            border-top: 1px dashed #000;
+            margin: 7px 0;
+        }
+        /* Prevent text wrapping in lines */
+        .receipt-line > * {
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4">
+<body class="p-2">
     <div class="max-w-sm mx-auto">
         <!-- Print Button -->
-        <div class="no-print mb-4 text-center">
-            <button onclick="window.print()" 
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg mr-2">
+        <div class="no-print mb-3 text-center">
+            <button onclick="window.print()"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg mr-2">
                 <i class="fas fa-print mr-2"></i>Print Receipt
             </button>
-            <button onclick="window.close()" 
-                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+            <button onclick="window.close()"
+                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                 <i class="fas fa-times mr-2"></i>Tutup
             </button>
         </div>
 
         <!-- Receipt -->
-        <div class="receipt-container bg-white p-3 rounded-lg shadow-lg">
+        <div class="receipt-container">
             <!-- Header -->
-            <div class="receipt-header text-center mb-2">
-                <h1 class="text-sm font-bold">TAKOYAKI POS</h1>
-                <p class="text-xs">Jl. Takoyaki No. 123</p>
-                <p class="text-xs">Telp: (021) 1234-5678</p>
+            <div class="receipt-header">
+                <h1 class="text-base font-bold">TAKONATION</h1>
+                <div class="text-xs">Jl. Raya Ciomas/Pagelaran</div>
+                <div class="text-xs">Telp: +62 812-8425-4724</div>
             </div>
 
             <!-- Transaction Info -->
-            <div class="receipt-section text-xs mb-2">
+            <div class="receipt-section text-xs">
                 <div class="receipt-line">
                     <span>No:</span>
                     <span>{{ $transaction->transaction_code }}</span>
@@ -84,10 +123,6 @@
                     <span>{{ $transaction->created_at->format('d/m/Y H:i') }}</span>
                 </div>
                 <div class="receipt-line">
-                    <span>Kasir:</span>
-                    <span>{{ $transaction->user->name }}</span>
-                </div>
-                <div class="receipt-line">
                     <span>Bayar:</span>
                     <span>{{ $transaction->payment_method_label }}</span>
                 </div>
@@ -95,9 +130,9 @@
 
             <!-- Items -->
             <div class="receipt-divider"></div>
-            <div class="receipt-section mb-2">
+            <div class="receipt-section">
                 @foreach($transaction->items as $item)
-                    <div class="mb-1">
+                    <div>
                         <div class="text-xs font-medium">{{ $item->product->name }}</div>
                         <div class="receipt-line text-xs">
                             <span>{{ $item->quantity }} x {{ number_format($item->unit_price, 0, ',', '.') }}</span>
@@ -109,32 +144,28 @@
 
             <!-- Summary -->
             <div class="receipt-divider"></div>
-            <div class="receipt-section text-xs mb-2">
+            <div class="receipt-section text-xs">
                 <div class="receipt-line">
                     <span>Subtotal:</span>
                     <span>{{ number_format($transaction->subtotal, 0, ',', '.') }}</span>
                 </div>
-
                 @if($transaction->hasDiscount())
                     <div class="receipt-line">
                         <span>Diskon ({{ $transaction->discount_percentage }}%):</span>
                         <span>-{{ number_format($transaction->discount_amount, 0, ',', '.') }}</span>
                     </div>
                 @endif
-
                 @if($transaction->hasTax())
                     <div class="receipt-line">
                         <span>Pajak ({{ $transaction->tax_percentage }}%):</span>
                         <span>{{ number_format($transaction->tax_amount, 0, ',', '.') }}</span>
                     </div>
                 @endif
-
                 <div class="receipt-divider"></div>
                 <div class="receipt-line font-bold text-sm">
                     <span>TOTAL:</span>
                     <span>{{ number_format($transaction->total_amount, 0, ',', '.') }}</span>
                 </div>
-                
                 <!-- Cash Payment Details -->
                 @if($transaction->payment_method === 'cash')
                     <div class="receipt-divider"></div>
@@ -144,7 +175,6 @@
                             <span>{{ number_format($transaction->customer_money, 0, ',', '.') }}</span>
                         </div>
                     @endif
-                    
                     @if($transaction->hasChange())
                         <div class="receipt-line font-bold">
                             <span>KEMBALIAN:</span>
@@ -156,15 +186,13 @@
 
             <!-- Footer -->
             <div class="receipt-divider"></div>
-            <div class="text-center text-xs">
-                <p>Terima kasih atas kunjungan Anda!</p>
-                <p>Selamat menikmati takoyaki kami</p>
-                <p class="mt-1">{{ config('app.name') }}</p>
-                <p>{{ now()->format('d/m/Y H:i:s') }}</p>
+            <div class="receipt-footer text-xs">
+                <div>Terima kasih atas kunjungan Anda!</div>
+                <div style="margin-bottom: 10px">Selamat menikmati takoyaki kami</div>
+                <div>{{ now()->format('d/m/Y H:i:s') }}</div>
             </div>
         </div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 </body>
 </html>
