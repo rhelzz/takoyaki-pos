@@ -92,15 +92,21 @@
 <body class="p-2">
     <div class="max-w-sm mx-auto">
         <!-- Print Button -->
-        <div class="no-print mb-3 text-center">
-            <button onclick="window.print()"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg mr-2">
-                <i class="fas fa-print mr-2"></i>Print Receipt
-            </button>
-            <button onclick="window.close()"
-                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
-                <i class="fas fa-times mr-2"></i>Tutup
-            </button>
+        <div class="no-print mb-4 p-2">
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-2">
+                <button onclick="window.print()"
+                        class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-print mr-2"></i><span>Print Receipt</span>
+                </button>
+                <button id="print-bluetooth-btn"
+                        class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-bluetooth-b mr-2"></i><span>Print Bluetooth</span>
+                </button>
+                <button onclick="window.close()"
+                        class="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-times mr-2"></i><span>Tutup</span>
+                </button>
+            </div>
         </div>
 
         <!-- Receipt -->
@@ -194,5 +200,153 @@
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <script>
+        // Pass transaction data from Laravel to JavaScript
+        const transactionData = @json($transaction);
+
+        document.getElementById('print-bluetooth-btn').addEventListener('click', () => {
+            printBluetooth(transactionData);
+        });
+
+        // Helper to format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('id-ID').format(value);
+        }
+
+        // Generate ESC/POS commands from transaction data
+        function generateEscPosData(transaction) {
+            const encoder = new TextEncoder();
+            let commands = [];
+
+            // Helper to add commands
+            const add = (data) => {
+                if (typeof data === 'string') {
+                    commands.push(encoder.encode(data));
+                } else {
+                    commands.push(new Uint8Array(data));
+                }
+            };
+
+            // ESC/POS Commands
+            const INIT = [0x1B, 0x40]; // Initialize printer
+            const CENTER = [0x1B, 0x61, 0x31];
+            const LEFT = [0x1B, 0x61, 0x30];
+            const BOLD_ON = [0x1B, 0x45, 0x01];
+            const BOLD_OFF = [0x1B, 0x45, 0x00];
+            const LF = '\n'; // Line Feed
+            const CUT = [0x1D, 0x56, 0x42, 0x00]; // Partial cut
+
+            // --- Start Receipt ---
+            add(INIT);
+            add(CENTER);
+            add(BOLD_ON);
+            add('TAKONATION' + LF);
+            add(BOLD_OFF);
+            add('Jl. Raya Ciomas/Pagelaran' + LF);
+            add('Telp: +62 812-8425-4724' + LF);
+            add(LF);
+
+            add(LEFT);
+            add(`No: ${transaction.transaction_code}` + LF);
+            add(`Tgl: ${new Date(transaction.created_at).toLocaleString('id-ID')}` + LF);
+            add(`Bayar: ${transaction.payment_method_label}` + LF);
+            add('--------------------------------' + LF);
+
+            // Items
+            transaction.items.forEach(item => {
+                add(item.product.name + LF);
+                const qtyPrice = `${item.quantity} x ${formatCurrency(item.unit_price)}`;
+                const subtotal = formatCurrency(item.total_price);
+                const line = qtyPrice.padEnd(32 - subtotal.length) + subtotal;
+                add(line + LF);
+            });
+
+            add('--------------------------------' + LF);
+
+            // Summary
+            const subtotalLine = `Subtotal:`.padEnd(32 - formatCurrency(transaction.subtotal).length) + formatCurrency(transaction.subtotal);
+            add(subtotalLine + LF);
+
+            if (transaction.discount_amount > 0) {
+                const discountLine = `Diskon (${transaction.discount_percentage}%):`.padEnd(32 - `-${formatCurrency(transaction.discount_amount)}`.length) + `-${formatCurrency(transaction.discount_amount)}`;
+                add(discountLine + LF);
+            }
+
+            if (transaction.tax_amount > 0) {
+                const taxLine = `Pajak (${transaction.tax_percentage}%):`.padEnd(32 - formatCurrency(transaction.tax_amount).length) + formatCurrency(transaction.tax_amount);
+                add(taxLine + LF);
+            }
+
+            add('--------------------------------' + LF);
+            add(BOLD_ON);
+            const totalLine = `TOTAL:`.padEnd(32 - formatCurrency(transaction.total_amount).length) + formatCurrency(transaction.total_amount);
+            add(totalLine + LF);
+            add(BOLD_OFF);
+
+            // Cash details
+            if (transaction.payment_method === 'cash' && transaction.customer_money > 0) {
+                add('--------------------------------' + LF);
+                const cashLine = `Bayar:`.padEnd(32 - formatCurrency(transaction.customer_money).length) + formatCurrency(transaction.customer_money);
+                add(cashLine + LF);
+                const changeLine = `Kembalian:`.padEnd(32 - formatCurrency(transaction.change_amount).length) + formatCurrency(transaction.change_amount);
+                add(changeLine + LF);
+            }
+
+            // Footer
+            add(LF);
+            add(CENTER);
+            add('Terima kasih atas kunjungan Anda!' + LF);
+            add('Selamat menikmati takoyaki kami' + LF + LF + LF);
+            add(CUT);
+
+            // Combine all commands into a single buffer
+            const totalLength = commands.reduce((acc, val) => acc + val.length, 0);
+            const buffer = new Uint8Array(totalLength);
+            let offset = 0;
+            commands.forEach(cmd => {
+                buffer.set(cmd, offset);
+                offset += cmd.length;
+            });
+
+            return buffer;
+        }
+
+        async function printBluetooth(transaction) {
+            if (!navigator.bluetooth) {
+                alert('Web Bluetooth API tidak didukung di browser ini.');
+                return;
+            }
+
+            try {
+                console.log('Requesting Bluetooth device...');
+                const device = await navigator.bluetooth.requestDevice({
+                    // Filter untuk printer thermal (generic serial port service)
+                    filters: [{ services: ['00001101-0000-1000-8000-00805f9b34fb'] }],
+                    // acceptAllDevices: true, // Uncomment jika filter tidak berhasil
+                });
+
+                console.log('Connecting to GATT Server...');
+                const server = await device.gatt.connect();
+
+                console.log('Getting Service...');
+                const service = await server.getPrimaryService('00001101-0000-1000-8000-00805f9b34fb');
+
+                console.log('Getting Characteristic...');
+                const characteristic = await service.getCharacteristics().then(chars => chars[0]);
+
+                console.log('Generating ESC/POS data...');
+                const data = generateEscPosData(transaction);
+
+                console.log('Sending data to printer...');
+                await characteristic.writeValue(data);
+                alert('Data berhasil dikirim ke printer!');
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Gagal mencetak: ${error.message}`);
+            }
+        }
+    </script>
 </body>
 </html>
