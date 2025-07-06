@@ -12,30 +12,14 @@ class StockMasuk extends Model
     protected $table = 'stock_masuk';
 
     protected $fillable = [
-        'nama_barang',
-        'qty',
+        'judul',
+        'deskripsi',
+        'items',
         'tanggal'
     ];
 
     protected $casts = [
         'tanggal' => 'date',
-        'qty' => 'integer'
+        'items' => 'array'
     ];
-
-    // Scope untuk filter berdasarkan nama barang
-    public function scopeByBarang($query, $namaBarang)
-    {
-        return $query->where('nama_barang', 'like', '%' . $namaBarang . '%');
-    }
-
-    public function scopeByDate($query, $date)
-    {
-        return $query->whereDate('tanggal', $date);
-    }
-
-    // Accessor untuk format tanggal Indonesia
-    public function getFormattedTanggalAttribute()
-    {
-        return $this->tanggal->format('d/m/Y');
-    }
 }

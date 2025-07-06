@@ -7,18 +7,37 @@ use Illuminate\Http\Request;
 
 class StockMasukController extends Controller
 {
+    /**
+     * Daftar template item default (toping & packaging).
+     */
+    protected function defaultItems()
+    {
+        return [
+            'Gurita' => 0,
+            'Crabstick' => 0,
+            'Udang' => 0,
+            'Beef' => 0,
+            'Bakso' => 0,
+            'Sosis' => 0,
+            'Box S' => 0,
+            'Box M' => 0,
+            'Box L' => 0,
+            'Styrofoam' => 0,
+        ];
+    }
+
     public function index(Request $request)
     {
         $query = StockMasuk::orderBy('tanggal', 'desc');
 
-        // Filter berdasarkan nama barang
+        // Filter berdasarkan judul
         if ($request->filled('search')) {
-            $query->byBarang($request->search);
+            $query->where('judul', 'like', '%' . $request->search . '%');
         }
 
         // Filter berdasarkan tanggal
         if ($request->filled('date')) {
-            $query->byDate($request->date);
+            $query->whereDate('tanggal', $request->date);
         }
 
         $stockMasuk = $query->paginate(10);
@@ -28,42 +47,89 @@ class StockMasukController extends Controller
 
     public function create()
     {
-        return view('stock-masuk.create');
+        $defaultItems = $this->defaultItems();
+        return view('stock-masuk.create', compact('defaultItems'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_barang' => 'required|string|max:255',
-            'qty' => 'required|integer|min:1',
+        $defaultItems = $this->defaultItems();
+        $itemKeys = array_keys($defaultItems);
+
+        // Validasi
+        $validatedData = $request->validate([
+            'judul' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
+            'items' => 'required|array',
+            'items.*' => 'numeric|min:0' // Tambahkan validasi untuk setiap item
         ]);
 
-        StockMasuk::create($request->all());
+        // Pastikan semua field item ada dan siapkan datanya
+        $items = [];
+        foreach ($itemKeys as $item) {
+            // Gunakan data dari $validatedData untuk keamanan
+            $items[$item] = (int) ($validatedData['items'][$item] ?? 0);
+        }
+
+        // Gabungkan semua data yang akan disimpan
+        $dataToCreate = [
+            'judul' => $validatedData['judul'],
+            'deskripsi' => $validatedData['deskripsi'],
+            'tanggal' => $validatedData['tanggal'],
+            'items' => $items,
+        ];
+
+        // Buat record baru dengan data yang sudah lengkap
+        StockMasuk::create($dataToCreate);
 
         return redirect()->route('stock-masuk.index')
             ->with('success', 'Stock masuk berhasil ditambahkan');
     }
 
+
     public function show(StockMasuk $stockMasuk)
     {
-        return view('stock-masuk.show', compact('stockMasuk'));
+        $items = $stockMasuk->items ?? [];
+        return view('stock-masuk.show', compact('stockMasuk', 'items'));
     }
 
     public function edit(StockMasuk $stockMasuk)
     {
-        return view('stock-masuk.edit', compact('stockMasuk'));
+        $defaultItems = $this->defaultItems();
+        // Merge value lama
+        $items = array_merge($defaultItems, $stockMasuk->items ?? []);
+        return view('stock-masuk.edit', compact('stockMasuk', 'items', 'defaultItems'));
     }
 
     public function update(Request $request, StockMasuk $stockMasuk)
     {
-        $request->validate([
-            'nama_barang' => 'required|string|max:255',
-            'qty' => 'required|integer|min:1',
+        $defaultItems = $this->defaultItems();
+        $itemKeys = array_keys($defaultItems);
+
+        // Validasi
+        $validatedData = $request->validate([
+            'judul' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
+            'items' => 'required|array',
+            'items.*' => 'numeric|min:0' // Tambahkan validasi untuk setiap item
         ]);
 
-        $stockMasuk->update($request->all());
+        // Pastikan semua field item ada
+        $items = [];
+        foreach ($itemKeys as $item) {
+            $items[$item] = (int) ($validatedData['items'][$item] ?? 0);
+        }
+        
+        $dataToUpdate = [
+            'judul' => $validatedData['judul'],
+            'deskripsi' => $validatedData['deskripsi'],
+            'tanggal' => $validatedData['tanggal'],
+            'items' => $items,
+        ];
+
+        $stockMasuk->update($dataToUpdate);
 
         return redirect()->route('stock-masuk.index')
             ->with('success', 'Stock masuk berhasil diperbarui');
@@ -73,14 +139,14 @@ class StockMasukController extends Controller
     {
         try {
             $stockMasuk->delete();
-            
+
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Stock masuk berhasil dihapus'
                 ]);
             }
-            
+
             return redirect()->route('stock-masuk.index')
                 ->with('success', 'Stock masuk berhasil dihapus');
         } catch (\Exception $e) {
@@ -90,7 +156,7 @@ class StockMasukController extends Controller
                     'message' => 'Gagal menghapus stock: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->with('error', 'Gagal menghapus stock: ' . $e->getMessage());
         }

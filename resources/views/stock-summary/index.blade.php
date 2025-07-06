@@ -1,347 +1,182 @@
 @extends('layouts.app')
-
-@section('title', 'Stock Summary - Takoyaki POS')
+@section('title', 'Stock Transaksi List')
 
 @section('content')
-<div class="p-4 max-w-7xl mx-auto">
-    <!-- Enhanced Header with Visual Appeal -->
-    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 lg:p-6 mb-6 text-white">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div class="mb-4 lg:mb-0">
-                <h1 class="text-xl lg:text-2xl font-bold mb-2">📦 Stock Summary</h1>
-                <div class="flex flex-wrap items-center gap-2 lg:gap-4 text-xs lg:text-sm">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 bg-white rounded-full opacity-75"></span>
-                        <span>Total: <strong>{{ $totalItems }}</strong></span>
-                    </div>
-                    @if($lowStock > 0)
-                        <div class="flex items-center gap-2 bg-red-500 bg-opacity-30 px-2 py-1 rounded-full">
-                            <i class="fas fa-exclamation-triangle text-xs"></i>
-                            <span>Rendah: <strong>{{ $lowStock }}</strong></span>
-                        </div>
-                    @endif
-                    @if($outOfStock > 0)
-                        <div class="flex items-center gap-2 bg-red-700 bg-opacity-40 px-2 py-1 rounded-full">
-                            <i class="fas fa-times-circle text-xs"></i>
-                            <span>Habis: <strong>{{ $outOfStock }}</strong></span>
-                        </div>
-                    @endif
-                </div>
-            </div>
-            
-            <!-- Enhanced Quick Actions -->
-            <div class="flex gap-2">
-                <a href="{{ route('stock-masuk.create') }}" 
-                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all duration-200 backdrop-blur-sm flex items-center gap-1">
-                    <i class="fas fa-plus text-xs"></i>
-                    <span class="hidden sm:inline">Stock</span> Masuk
-                </a>
-                <a href="{{ route('stock-keluar.create') }}" 
-                   class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all duration-200 backdrop-blur-sm flex items-center gap-1">
-                    <i class="fas fa-minus text-xs"></i>
-                    <span class="hidden sm:inline">Stock</span> Keluar
-                </a>
-            </div>
+<div class="p-4 max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6 text-blue-800 flex items-center gap-2">
+        <i class="fas fa-calendar-alt text-blue-500"></i> Daftar Transaksi Stock (Masuk & Keluar)
+    </h1>
+    {{-- Filter Section --}}
+    <div class="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+        <div class="flex gap-2 items-center">
+            <input type="date" id="filterTanggal"
+                   class="border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 transition"
+                   placeholder="Cari tanggal..." />
+            <button id="clearFilter" class="px-2 py-2 bg-gray-200 hover:bg-gray-300 rounded text-xs text-gray-600 transition hidden" type="button">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div>
+            <span class="text-gray-500 text-sm" id="cardCount"></span>
         </div>
     </div>
+    {{-- Card Grid --}}
+    <div id="cardGrid" class="flex flex-col gap-4"></div>
+    {{-- Pagination --}}
+    <div class="flex justify-center mt-6" id="pagination"></div>
+</div>
 
-    <!-- Quick Stats Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
-        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 lg:p-4 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-green-100 text-xs uppercase tracking-wide">Aman</p>
-                    <p class="text-lg lg:text-2xl font-bold">{{ collect($stockSummary)->where('stock_now', '>', 3)->count() }}</p>
-                </div>
-                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-check-circle text-sm lg:text-base"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 lg:p-4 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-orange-100 text-xs uppercase tracking-wide">Rendah</p>
-                    <p class="text-lg lg:text-2xl font-bold">{{ $lowStock }}</p>
-                </div>
-                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-exclamation-triangle text-sm lg:text-base"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-3 lg:p-4 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-red-100 text-xs uppercase tracking-wide">Habis</p>
-                    <p class="text-lg lg:text-2xl font-bold">{{ $outOfStock }}</p>
-                </div>
-                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-times-circle text-sm lg:text-base"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 lg:p-4 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-blue-100 text-xs uppercase tracking-wide">Total</p>
-                    <p class="text-lg lg:text-2xl font-bold">{{ $totalItems }}</p>
-                </div>
-                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-boxes text-sm lg:text-base"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced Table Card -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <!-- Search Header with Better Styling -->
-        <div class="bg-gray-50 px-4 lg:px-6 py-4 border-b border-gray-200">
-            <form method="GET" class="flex flex-col sm:flex-row gap-3">
-                <div class="flex-1">
-                    <div class="relative">
-                        <input type="text" 
-                               name="search" 
-                               value="{{ request('search') }}" 
-                               placeholder="Cari nama barang..." 
-                               class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" 
-                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 lg:px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-                        <i class="fas fa-search"></i>
-                        <span class="hidden sm:inline">Cari</span>
-                    </button>
-                    @if(request('search'))
-                        <a href="{{ route('stock-summary.index') }}" 
-                           class="bg-gray-500 hover:bg-gray-600 text-white px-4 lg:px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 text-sm">
-                            <i class="fas fa-refresh"></i>
-                            <span class="hidden sm:inline">Reset</span>
-                        </a>
-                    @endif
-                </div>
-            </form>
-        </div>
-        
-        <!-- Mobile-Optimized Table/Cards -->
-        @if($stockSummary->count() > 0)
-            <!-- Desktop Table (Hidden on Mobile) -->
-            <div class="hidden lg:block overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Nama Barang
-                            </th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Stock Masuk
-                            </th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Stock Keluar
-                            </th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Stock Saat Ini
-                            </th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-100">
-                        @foreach($stockSummary as $item)
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fas fa-box text-blue-600"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-gray-900">{{ $item['nama_barang'] }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center gap-1 text-sm font-medium text-green-600">
-                                        <i class="fas fa-arrow-up text-xs"></i>
-                                        {{ number_format($item['total_masuk']) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center gap-1 text-sm font-medium text-red-600">
-                                        <i class="fas fa-arrow-down text-xs"></i>
-                                        {{ number_format($item['total_keluar']) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="text-lg font-bold
-                                        @if($item['stock_now'] <= 0) text-red-700
-                                        @elseif($item['stock_now'] <= 3) text-orange-600
-                                        @else text-gray-800
-                                        @endif">
-                                        {{ number_format($item['stock_now']) }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    @if($item['stock_now'] <= 0)
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                                            Habis
-                                        </span>
-                                    @elseif($item['stock_now'] <= 3)
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                            <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
-                                            Rendah
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                                            Aman
-                                        </span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Mobile Card Layout (Visible on Mobile Only) -->
-            <div class="lg:hidden divide-y divide-gray-100">
-                @foreach($stockSummary as $item)
-                    <div class="p-4 hover:bg-gray-50 transition-colors">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center">
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center mr-3">
-                                    <i class="fas fa-box text-blue-600 text-sm"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-medium text-gray-900 text-sm">{{ $item['nama_barang'] }}</h3>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-lg font-bold
-                                    @if($item['stock_now'] <= 0) text-red-700
-                                    @elseif($item['stock_now'] <= 3) text-orange-600
-                                    @else text-gray-800
-                                    @endif">
-                                    {{ number_format($item['stock_now']) }}
-                                </div>
-                                @if($item['stock_now'] <= 0)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        <span class="w-1.5 h-1.5 bg-red-500 rounded-full mr-1"></span>
-                                        Habis
-                                    </span>
-                                @elseif($item['stock_now'] <= 3)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full mr-1"></span>
-                                        Rendah
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></span>
-                                        Aman
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-between text-xs text-gray-600">
-                            <div class="flex items-center gap-1">
-                                <i class="fas fa-arrow-up text-green-600"></i>
-                                <span class="text-green-600 font-medium">{{ number_format($item['total_masuk']) }}</span>
-                                <span>masuk</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <i class="fas fa-arrow-down text-red-600"></i>
-                                <span class="text-red-600 font-medium">{{ number_format($item['total_keluar']) }}</span>
-                                <span>keluar</span>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <!-- Enhanced Pagination -->
-            @if($stockSummary->hasPages())
-                <div class="bg-gray-50 px-4 lg:px-6 py-4 border-t border-gray-200">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div class="text-xs lg:text-sm text-gray-700 text-center sm:text-left">
-                            Menampilkan <span class="font-medium">{{ $stockSummary->firstItem() }}</span> - 
-                            <span class="font-medium">{{ $stockSummary->lastItem() }}</span> dari 
-                            <span class="font-medium">{{ $stockSummary->total() }}</span> item
-                        </div>
-                        <div class="flex items-center justify-center gap-1">
-                            {{-- Previous Page Link --}}
-                            @if ($stockSummary->onFirstPage())
-                                <span class="px-2 lg:px-3 py-2 text-xs lg:text-sm text-gray-400 cursor-not-allowed rounded">‹</span>
-                            @else
-                                <a href="{{ $stockSummary->previousPageUrl() }}" 
-                                   class="px-2 lg:px-3 py-2 text-xs lg:text-sm text-gray-700 hover:bg-gray-200 rounded transition-colors">‹</a>
-                            @endif
-
-                            {{-- Page Numbers (Limited on Mobile) --}}
-                            @php
-                                $start = max(1, $stockSummary->currentPage() - 1);
-                                $end = min($stockSummary->lastPage(), $stockSummary->currentPage() + 1);
-                            @endphp
-                            
-                            @for($page = $start; $page <= $end; $page++)
-                                @if ($page == $stockSummary->currentPage())
-                                    <span class="px-2 lg:px-3 py-2 text-xs lg:text-sm bg-blue-500 text-white rounded font-medium">{{ $page }}</span>
-                                @else
-                                    <a href="{{ $stockSummary->url($page) }}" 
-                                       class="px-2 lg:px-3 py-2 text-xs lg:text-sm text-gray-700 hover:bg-gray-200 rounded transition-colors">{{ $page }}</a>
-                                @endif
-                            @endfor
-
-                            {{-- Next Page Link --}}
-                            @if ($stockSummary->hasMorePages())
-                                <a href="{{ $stockSummary->nextPageUrl() }}" 
-                                   class="px-2 lg:px-3 py-2 text-xs lg:text-sm text-gray-700 hover:bg-gray-200 rounded transition-colors">›</a>
-                            @else
-                                <span class="px-2 lg:px-3 py-2 text-xs lg:text-sm text-gray-400 cursor-not-allowed rounded">›</span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endif
-        @else
-            <!-- Enhanced Empty State -->
-            <div class="px-4 lg:px-6 py-12 lg:py-16 text-center">
-                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-boxes text-gray-400 text-xl lg:text-2xl"></i>
-                </div>
-                <h3 class="text-lg lg:text-xl font-medium text-gray-900 mb-2">
-                    @if(request('search'))
-                        Tidak ditemukan "{{ request('search') }}"
-                    @else
-                        Belum ada data stock
-                    @endif
-                </h3>
-                <p class="text-gray-500 mb-6 text-sm lg:text-base">
-                    @if(request('search'))
-                        Coba gunakan kata kunci yang berbeda
-                    @else
-                        Tambah stock masuk untuk mulai mengelola inventory
-                    @endif
-                </p>
-                <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a href="{{ route('stock-masuk.create') }}" 
-                       class="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm lg:text-base">
-                        <i class="fas fa-plus"></i>Tambah Stock Masuk
-                    </a>
-                    <a href="{{ route('stock-keluar.create') }}" 
-                       class="bg-red-500 hover:bg-red-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm lg:text-base">
-                        <i class="fas fa-minus"></i>Tambah Stock Keluar
-                    </a>
-                </div>
-            </div>
-        @endif
+{{-- Modal --}}
+<div id="summaryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
+    <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative animate-fadeIn">
+        <button onclick="closeSummaryModal()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-800 text-2xl">
+            <i class="fas fa-times-circle"></i>
+        </button>
+        <h2 class="text-lg font-bold mb-2 text-blue-700 flex flex-col gap-1">
+            <span id="modalJenis"></span>
+            <span id="modalJudul" class="block font-semibold text-blue-800"></span>
+            <span id="modalTanggal"></span>
+        </h2>
+        <div id="modalDetail"></div>
+        <div id="modalDeskripsi" class="mt-2 text-gray-500 text-sm"></div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+const summaryData = @json($summaryTransaksi);
+let filteredData = [...summaryData];
+let currentPage = 1;
+const perPage = 5;
+
+// TANGGAL SAJA, TANPA JAM
+function formatDateID(isoDateTime) {
+    const tgl = new Date(isoDateTime);
+    return tgl.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function renderCards() {
+    const start = (currentPage-1) * perPage;
+    const end = start + perPage;
+    const pageItems = filteredData.slice(start, end);
+    let html = '';
+    pageItems.forEach((trx, idx) => {
+        html += `
+        <button class="bg-white rounded-xl shadow border p-4 flex flex-col gap-2 text-left hover:border-blue-400 hover:shadow-lg transition cursor-pointer focus:outline-none group"
+            onclick="showSummaryModal(${summaryData.findIndex(s => s.id === trx.id && s.jenis === trx.jenis)})"
+        >
+            <div class="flex items-center gap-2 mb-2">
+                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full
+                    ${trx.jenis==='masuk' ? 'bg-green-100 text-green-500' : 'bg-red-100 text-red-500'}">
+                    <i class="fas ${trx.jenis==='masuk' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                </span>
+                <span class="font-bold text-base ${trx.jenis==='masuk' ? 'text-green-600' : 'text-red-600'}">
+                    ${trx.jenis==='masuk' ? 'Stock Masuk' : 'Stock Keluar'}
+                </span>
+                <span class="ml-auto text-xs text-gray-500">${formatDateID(trx.waktu)}</span>
+            </div>
+            <div class="font-semibold text-blue-800 mb-1">${trx.judul || '-'}</div>
+            <ul class="mt-2 text-sm text-gray-700 grid grid-cols-2 gap-x-4">
+                ${trx.barang.map(b => 
+                    `<li class="flex justify-between"><span>${b.nama_barang}</span> <b>${b.qty}</b></li>`
+                ).join('')}
+            </ul>
+        </button>`;
+    });
+    if(pageItems.length === 0) {
+        html = `<div class="text-center text-gray-400 py-10">Tidak ada data untuk tanggal ini.</div>`;
+    }
+    document.getElementById('cardGrid').innerHTML = html;
+    document.getElementById('cardCount').textContent =
+        `Menampilkan ${pageItems.length} dari ${filteredData.length} transaksi`;
+    renderPagination();
+}
+
+function renderPagination() {
+    const totalPages = Math.ceil(filteredData.length / perPage);
+    let html = '';
+    if(totalPages <= 1) {
+        document.getElementById('pagination').innerHTML = '';
+        return;
+    }
+    html += `<nav class="inline-flex shadow-sm rounded-md" aria-label="Pagination">`;
+    html += `<button class="px-3 py-1 border border-gray-200 rounded-l bg-white ${currentPage === 1 ? 'text-gray-400' : 'hover:bg-gray-100'}"
+                ${currentPage === 1 ? 'disabled' : ''} onclick="gotoPage(${currentPage-1})">&laquo;</button>`;
+    for(let i=1; i<=totalPages; i++) {
+        html += `<button class="px-3 py-1 border-t border-b border-gray-200 bg-white ${i===currentPage ? 'text-blue-600 font-bold underline' : 'hover:bg-gray-100'}"
+                    onclick="gotoPage(${i})">${i}</button>`;
+    }
+    html += `<button class="px-3 py-1 border border-gray-200 rounded-r bg-white ${currentPage === totalPages ? 'text-gray-400' : 'hover:bg-gray-100'}"
+                ${currentPage === totalPages ? 'disabled' : ''} onclick="gotoPage(${currentPage+1})">&raquo;</button>`;
+    html += '</nav>';
+    document.getElementById('pagination').innerHTML = html;
+}
+function gotoPage(page) {
+    currentPage = page;
+    renderCards();
+}
+
+// Filter by tanggal
+const filterTanggal = document.getElementById('filterTanggal');
+const clearFilterBtn = document.getElementById('clearFilter');
+filterTanggal.addEventListener('change', function() {
+    const val = this.value;
+    if(val) {
+        filteredData = summaryData.filter(s => s.tanggal === val);
+        clearFilterBtn.classList.remove('hidden');
+    } else {
+        filteredData = [...summaryData];
+        clearFilterBtn.classList.add('hidden');
+    }
+    currentPage = 1;
+    renderCards();
+});
+clearFilterBtn.addEventListener('click', function() {
+    filterTanggal.value = '';
+    filteredData = [...summaryData];
+    this.classList.add('hidden');
+    currentPage = 1;
+    renderCards();
+});
+
+// Modal logic
+function showSummaryModal(idx) {
+    const data = summaryData[idx];
+    document.getElementById('summaryModal').classList.remove('hidden');
+    document.getElementById('modalJenis').innerHTML =
+        `<span class="${data.jenis==='masuk'?'text-green-600':'text-red-600'} mr-2 font-bold text-base">${data.jenis==='masuk'?'Stock Masuk':'Stock Keluar'}</span>`;
+    document.getElementById('modalJudul').textContent = data.judul || '-';
+    document.getElementById('modalTanggal').textContent = formatDateID(data.waktu);
+    document.getElementById('modalDeskripsi').textContent = data.deskripsi || '';
+
+    let html = `<table class="w-full text-sm mt-2">
+        <thead>
+            <tr class="border-b border-gray-200">
+                <th class="text-left py-1">Barang</th>
+                <th class="text-center py-1">${data.jenis==='masuk' ? 'Qty Masuk' : 'Qty Keluar'}</th>
+            </tr>
+        </thead>
+        <tbody>`;
+    data.barang.forEach(item => {
+        html += `<tr>
+            <td class="py-1">${item.nama_barang}</td>
+            <td class="py-1 text-center font-bold">${item.qty}</td>
+        </tr>`;
+    });
+    html += "</tbody></table>";
+    document.getElementById('modalDetail').innerHTML = html;
+}
+function closeSummaryModal() {
+    document.getElementById('summaryModal').classList.add('hidden');
+}
+
+// Initial render
+renderCards();
+</script>
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.95);} to { opacity: 1; transform: scale(1);} }
+.animate-fadeIn { animation: fadeIn 0.2s;}
+input[type="date"]:focus { border-color: #3b82f6 !important; }
+</style>
+@endpush

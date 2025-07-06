@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('stock_keluar', function (Blueprint $table) {
             $table->id();
-            $table->string('nama_barang');
-            $table->integer('qty');
+            $table->string('judul'); // Judul laporan
+            $table->text('deskripsi')->nullable(); // Deskripsi laporan
+            $table->json('items'); // Isi qty semua item (toping & packaging), format JSON
             $table->date('tanggal');
             $table->timestamps();
         });
