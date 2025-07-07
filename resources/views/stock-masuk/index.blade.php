@@ -10,11 +10,13 @@
                 <h1 class="text-xl font-bold text-gray-800">Stock Masuk</h1>
                 <p class="text-sm text-gray-600 hidden sm:block">Laporan stock masuk per cabang & tanggal</p>
             </div>
+            @if(Auth::user()->role !== 'cashier')
             <a href="{{ route('stock-masuk.create') }}"
                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm">
                 <i class="fas fa-plus mr-1"></i>
                 <span class="hidden sm:inline">Tambah</span>
             </a>
+            @endif
         </div>
     </div>
     <div class="p-4 max-w-6xl mx-auto space-y-4">
@@ -60,6 +62,7 @@
                                    class="text-blue-600 hover:text-blue-800 text-sm mr-2">
                                     <i class="fas fa-eye mr-1"></i>Detail
                                 </a>
+                                @if(Auth::user()->role !== 'cashier')
                                 <a href="{{ route('stock-masuk.edit', $row) }}"
                                    class="text-yellow-600 hover:text-yellow-800 text-sm mr-2">
                                     <i class="fas fa-edit mr-1"></i>Edit
@@ -72,6 +75,7 @@
                                         <i class="fas fa-trash mr-1"></i>Hapus
                                     </button>
                                 </form>
+                                @endif
                             </td>
                         </tr>
                         @empty
@@ -95,6 +99,7 @@
                                 <a href="{{ route('stock-masuk.show', $row) }}" class="text-blue-500 p-1">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                @if(Auth::user()->role !== 'cashier')
                                 <a href="{{ route('stock-masuk.edit', $row) }}" class="text-yellow-500 p-1">
                                     <i class="fas fa-edit"></i>
                                 </a>
@@ -104,6 +109,7 @@
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
+                                @endif
                             </div>
                         </div>
                         <div class="text-xs text-gray-600 truncate">{{ $row->deskripsi }}</div>
