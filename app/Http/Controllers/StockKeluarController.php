@@ -40,7 +40,7 @@ class StockKeluarController extends Controller
             $query->whereDate('tanggal', $request->date);
         }
 
-        $stockKeluar = $query->paginate(10);
+        $stockKeluar = $query->paginate(10)->appends($request->query());
 
         return view('stock-keluar.index', compact('stockKeluar'));
     }
@@ -56,7 +56,6 @@ class StockKeluarController extends Controller
         $defaultItems = $this->defaultItems();
         $itemKeys = array_keys($defaultItems);
 
-        // Validasi
         $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
@@ -64,7 +63,6 @@ class StockKeluarController extends Controller
             'items' => 'required|array',
         ]);
 
-        // Pastikan semua field item ada
         $items = [];
         foreach ($itemKeys as $item) {
             $items[$item] = (int) ($request->items[$item] ?? 0);
@@ -90,7 +88,6 @@ class StockKeluarController extends Controller
     public function edit(StockKeluar $stockKeluar)
     {
         $defaultItems = $this->defaultItems();
-        // Merge value lama
         $items = array_merge($defaultItems, $stockKeluar->items ?? []);
         return view('stock-keluar.edit', compact('stockKeluar', 'items', 'defaultItems'));
     }
@@ -100,7 +97,6 @@ class StockKeluarController extends Controller
         $defaultItems = $this->defaultItems();
         $itemKeys = array_keys($defaultItems);
 
-        // Validasi
         $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
@@ -108,7 +104,6 @@ class StockKeluarController extends Controller
             'items' => 'required|array',
         ]);
 
-        // Pastikan semua field item ada
         $items = [];
         foreach ($itemKeys as $item) {
             $items[$item] = (int) ($request->items[$item] ?? 0);

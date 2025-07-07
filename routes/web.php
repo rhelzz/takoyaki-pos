@@ -43,6 +43,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/cashier/process', [CashierController::class, 'processTransaction'])->name('cashier.process');
         Route::get('/cashier/product/{id}', [CashierController::class, 'getProduct'])->name('cashier.product');
         Route::get('/cashier/receipt/{transactionCode}', [CashierController::class, 'getTransactionReceipt'])->name('cashier.receipt');
+        // Stock Management Routes
+        Route::resource('stock-masuk', StockMasukController::class);
+        Route::get('stock-summary', [StockSummaryController::class, 'index'])->name('stock-summary.index');
         Route::resource('stock-keluar', StockKeluarController::class);
     });
     
@@ -91,9 +94,5 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:admin,manager'])->group(function () {
         // Daily Expenses Routes
         Route::resource('daily-expenses', DailyExpenseController::class);
-        
-        // Stock Management Routes
-        Route::resource('stock-masuk', StockMasukController::class);
-        Route::get('stock-summary', [StockSummaryController::class, 'index'])->name('stock-summary.index');
     });
 });

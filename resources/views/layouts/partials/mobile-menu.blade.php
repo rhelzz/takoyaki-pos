@@ -29,7 +29,10 @@
             <i class="fas fa-tags w-4 text-sm"></i>
             <span class="text-sm">Kategori</span>
         </a>
+    @endif
 
+    {{-- MENU STOCK UNTUK SEMUA USER LOGIN --}}
+    @auth
         <div class="space-y-0.5">
             <div class="flex items-center space-x-2 p-2 text-gray-500 text-xs font-medium">
                 <i class="fas fa-warehouse w-4"></i>
@@ -53,21 +56,7 @@
                 </a>
             </div>
         </div>
-    @elseif(auth()->user()->isCashier()) {{-- KONDISI BARU DITAMBAHKAN UNTUK KASIR --}}
-        <div class="space-y-0.5">
-            <div class="flex items-center space-x-2 p-2 text-gray-500 text-xs font-medium">
-                <i class="fas fa-warehouse w-4"></i>
-                <span>Stock</span>
-            </div>
-            <div class="ml-6 space-y-0.5">
-                <a href="{{ route('stock-keluar.index') }}" 
-                   class="mobile-menu-link block p-1.5 text-xs rounded transition-colors {{ request()->routeIs('stock-keluar*') ? 'bg-red-50 text-red-600' : 'text-gray-600 hover:bg-gray-50' }}"
-                   @click="mobileMenuOpen = false">
-                    Stock Keluar
-                </a>
-            </div>
-        </div>
-    @endif
+    @endauth
 
     @if(auth()->user()->canViewReports())
         <a href="{{ route('transactions.index') }}" 

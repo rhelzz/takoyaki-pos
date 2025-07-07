@@ -18,6 +18,25 @@
         </div>
     </div>
     <div class="p-4 max-w-6xl mx-auto space-y-4">
+
+        {{-- Filter Form TANGGAL SAJA --}}
+        <form method="GET" action="{{ route('stock-masuk.index') }}" class="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-end">
+            <div>
+                <label for="date" class="block text-xs text-gray-500 mb-1">Tanggal</label>
+                <input type="date" id="date" name="date" value="{{ request('date') }}" class="border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-40" />
+            </div>
+            <div>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm mt-4 sm:mt-0">
+                    Filter
+                </button>
+            </div>
+            @if(request('date'))
+                <div>
+                    <a href="{{ route('stock-masuk.index') }}" class="text-sm text-gray-500 underline ml-2">Reset</a>
+                </div>
+            @endif
+        </form>
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {{-- Desktop Table --}}
             <div class="hidden sm:block">
@@ -95,7 +114,7 @@
             </div>
             @if ($stockMasuk instanceof \Illuminate\Pagination\LengthAwarePaginator)
             <div class="p-4 border-t border-gray-200 bg-gray-50">
-                {{ $stockMasuk->links() }}
+                {{ $stockMasuk->appends(request()->query())->links() }}
             </div>
             @endif
         </div>

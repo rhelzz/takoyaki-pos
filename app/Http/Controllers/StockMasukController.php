@@ -40,7 +40,7 @@ class StockMasukController extends Controller
             $query->whereDate('tanggal', $request->date);
         }
 
-        $stockMasuk = $query->paginate(10);
+        $stockMasuk = $query->paginate(10)->appends($request->query());
 
         return view('stock-masuk.index', compact('stockMasuk'));
     }
@@ -62,17 +62,14 @@ class StockMasukController extends Controller
             'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
             'items' => 'required|array',
-            'items.*' => 'numeric|min:0' // Tambahkan validasi untuk setiap item
+            'items.*' => 'numeric|min:0'
         ]);
 
-        // Pastikan semua field item ada dan siapkan datanya
         $items = [];
         foreach ($itemKeys as $item) {
-            // Gunakan data dari $validatedData untuk keamanan
             $items[$item] = (int) ($validatedData['items'][$item] ?? 0);
         }
 
-        // Gabungkan semua data yang akan disimpan
         $dataToCreate = [
             'judul' => $validatedData['judul'],
             'deskripsi' => $validatedData['deskripsi'],
@@ -80,13 +77,11 @@ class StockMasukController extends Controller
             'items' => $items,
         ];
 
-        // Buat record baru dengan data yang sudah lengkap
         StockMasuk::create($dataToCreate);
 
         return redirect()->route('stock-masuk.index')
             ->with('success', 'Stock masuk berhasil ditambahkan');
     }
-
 
     public function show(StockMasuk $stockMasuk)
     {
@@ -97,7 +92,6 @@ class StockMasukController extends Controller
     public function edit(StockMasuk $stockMasuk)
     {
         $defaultItems = $this->defaultItems();
-        // Merge value lama
         $items = array_merge($defaultItems, $stockMasuk->items ?? []);
         return view('stock-masuk.edit', compact('stockMasuk', 'items', 'defaultItems'));
     }
@@ -107,21 +101,19 @@ class StockMasukController extends Controller
         $defaultItems = $this->defaultItems();
         $itemKeys = array_keys($defaultItems);
 
-        // Validasi
         $validatedData = $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
             'items' => 'required|array',
-            'items.*' => 'numeric|min:0' // Tambahkan validasi untuk setiap item
+            'items.*' => 'numeric|min:0'
         ]);
 
-        // Pastikan semua field item ada
         $items = [];
         foreach ($itemKeys as $item) {
             $items[$item] = (int) ($validatedData['items'][$item] ?? 0);
         }
-        
+
         $dataToUpdate = [
             'judul' => $validatedData['judul'],
             'deskripsi' => $validatedData['deskripsi'],
