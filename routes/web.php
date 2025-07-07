@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/cashier/process', [CashierController::class, 'processTransaction'])->name('cashier.process');
         Route::get('/cashier/product/{id}', [CashierController::class, 'getProduct'])->name('cashier.product');
         Route::get('/cashier/receipt/{transactionCode}', [CashierController::class, 'getTransactionReceipt'])->name('cashier.receipt');
+        Route::resource('stock-keluar', StockKeluarController::class);
     });
     
     // Categories & Products - Admin, Manager only
@@ -93,7 +94,6 @@ Route::middleware('auth')->group(function () {
         
         // Stock Management Routes
         Route::resource('stock-masuk', StockMasukController::class);
-        Route::resource('stock-keluar', StockKeluarController::class);
         Route::get('stock-summary', [StockSummaryController::class, 'index'])->name('stock-summary.index');
     });
 });
