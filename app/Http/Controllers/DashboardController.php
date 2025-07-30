@@ -12,31 +12,44 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $today = Carbon::today();
         $user = Auth::user();
-        
+        $userId = $request->get('user_id'); // Untuk filter kasir
+
+        // Query dasar transaction
+        $transactionQuery = Transaction::whereDate('created_at', $today);
+        if ($userId) {
+            $transactionQuery->where('user_id', $userId);
+        }
+
         // Statistik hari ini
-        $todayTransactions = Transaction::whereDate('created_at', $today)->count();
-        $todayRevenue = Transaction::whereDate('created_at', $today)->sum('total_amount');
-        $todayGrossProfit = Transaction::whereDate('created_at', $today)->sum('gross_profit');
-        $todayNetProfit = Transaction::whereDate('created_at', $today)->sum('net_profit');
-        $todayCost = Transaction::whereDate('created_at', $today)->sum('total_cost');
-        
-        // Transaksi per jam hari ini (jam tersibuk)
-        $hourlyTransactions = Transaction::whereDate('created_at', $today)
+        $todayTransactions = (clone $transactionQuery)->count();
+        $todayRevenue = (clone $transactionQuery)->sum('total_amount');
+        $todayGrossProfit = (clone $transactionQuery)->sum('gross_profit');
+        $todayNetProfit = (clone $transactionQuery)->sum('net_profit');
+        $todayCost = (clone $transactionQuery)->sum('total_cost');
+
+        // Jam tersibuk
+        $hourlyTransactions = (clone $transactionQuery)
             ->select(DB::raw('HOUR(created_at) as hour'), DB::raw('COUNT(*) as count'))
             ->groupBy('hour')
             ->orderBy('count', 'desc')
             ->limit(5)
             ->get();
-        
-        // Produk terlaris hari ini
+
+        // Produk terlaris hari ini (per kasir)
         $topProducts = DB::table('transaction_items')
             ->join('products', 'transaction_items.product_id', '=', 'products.id')
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
-            ->whereDate('transactions.created_at', $today)
+            ->whereDate('transactions.created_at', $today);
+
+        if ($userId) {
+            $topProducts->where('transactions.user_id', $userId);
+        }
+
+        $topProducts = $topProducts
             ->select('products.name', DB::raw('SUM(transaction_items.quantity) as total_sold'))
             ->groupBy('products.id', 'products.name')
             ->orderBy('total_sold', 'desc')
@@ -47,21 +60,25 @@ class DashboardController extends Controller
         $totalUsers = null;
         $totalProducts = null;
         $monthlyRevenue = null;
-        
         if ($user->canViewReports()) {
             $totalUsers = User::active()->count();
             $totalProducts = Product::active()->count();
             $monthlyRevenue = Transaction::whereMonth('created_at', Carbon::now()->month)
                 ->whereYear('created_at', Carbon::now()->year)
+                ->when($userId, fn($q) => $q->where('user_id', $userId))
                 ->sum('total_amount');
         }
 
-        // Transaksi terbaru (5 terakhir)
+        // Transaksi terbaru (5 terakhir, sesuai filter user)
         $recentTransactions = Transaction::with(['user', 'items.product'])
+            ->when($userId, fn($q) => $q->where('user_id', $userId))
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
-        
+
+        // Data kasir untuk dropdown filter
+        $cashiers = User::where('role', 'cashier')->active()->get();
+
         return view('dashboard.index', compact(
             'todayTransactions',
             'todayRevenue',
@@ -73,7 +90,9 @@ class DashboardController extends Controller
             'totalUsers',
             'totalProducts',
             'monthlyRevenue',
-            'recentTransactions'
+            'recentTransactions',
+            'cashiers',
+            'userId'
         ));
     }
 }

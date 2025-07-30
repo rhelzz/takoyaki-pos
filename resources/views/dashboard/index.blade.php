@@ -4,6 +4,18 @@
 
 @section('content')
 <div class="p-4 max-w-7xl mx-auto" x-data="dashboard()">
+    <!-- Filter Kasir -->
+    <form method="GET" class="mb-4 flex items-center space-x-2">
+        <label for="user_id" class="text-sm font-medium text-gray-700">Pilih Kasir:</label>
+        <select name="user_id" id="user_id" class="px-3 py-2 border rounded" onchange="this.form.submit()">
+            <option value="">Semua Kasir</option>
+            @foreach($cashiers as $kasir)
+                <option value="{{ $kasir->id }}" {{ $userId == $kasir->id ? 'selected' : '' }}>
+                    {{ $kasir->name }}
+                </option>
+            @endforeach
+        </select>
+    </form>
     <!-- Welcome Header -->
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-2">
@@ -103,7 +115,7 @@
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Jam Tersibuk Hari Ini</h3>
             @if($hourlyTransactions->count() > 0)
                 <div class="space-y-3">
-                    @foreach($hourlyTransactions->take(5) as $hour)
+                    @foreach($hourlyTransactions as $hour)
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600">{{ $hour->hour }}:00 - {{ $hour->hour + 1 }}:00</span>
                             <div class="flex items-center space-x-2">
@@ -165,7 +177,7 @@
                                     {{ $transaction->transaction_code }}
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
-                                    {{ $transaction->time_only }}
+                                    {{ $transaction->created_at->format('H:i') }}
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
                                     {{ $transaction->user->name }}
@@ -174,7 +186,7 @@
                                     Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
-                                    {{ $transaction->total_items }} item
+                                    {{ $transaction->items->sum('quantity') }} item
                                 </td>
                             </tr>
                         @endforeach
