@@ -73,23 +73,25 @@
                     
                     <div class="space-y-2">
                         <template x-for="(topping, index) in toppings" :key="index">
-                            <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
-                                <input type="text" 
-                                       x-model="topping.name"
-                                       placeholder="Nama topping (cth: Gurita)"
-                                       class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       required>
-                                <input type="number" 
-                                       x-model="topping.qty"
-                                       placeholder="Qty"
-                                       min="0"
-                                       class="w-24 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       required>
-                                <button type="button" 
-                                        @click="removeTopping(index)"
-                                        class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+                                    <input type="text" 
+                                           x-model="topping.name"
+                                           placeholder="Nama topping (cth: Gurita)"
+                                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           required>
+                                    <input type="number" 
+                                           x-model="topping.qty"
+                                           placeholder="Qty"
+                                           min="0"
+                                           class="w-full sm:w-24 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           required>
+                                    <button type="button" 
+                                            @click="removeTopping(index)"
+                                            class="w-full sm:w-auto px-4 py-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium">
+                                        <i class="fas fa-trash mr-2"></i>Hapus
+                                    </button>
+                                </div>
                             </div>
                         </template>
                         
@@ -116,23 +118,25 @@
                     
                     <div class="space-y-2">
                         <template x-for="(packaging, index) in packagings" :key="index">
-                            <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
-                                <input type="text" 
-                                       x-model="packaging.name"
-                                       placeholder="Nama packaging (cth: Box S)"
-                                       class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                       required>
-                                <input type="number" 
-                                       x-model="packaging.qty"
-                                       placeholder="Qty"
-                                       min="0"
-                                       class="w-24 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                       required>
-                                <button type="button" 
-                                        @click="removePackaging(index)"
-                                        class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+                                    <input type="text" 
+                                           x-model="packaging.name"
+                                           placeholder="Nama packaging (cth: Box S)"
+                                           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                           required>
+                                    <input type="number" 
+                                           x-model="packaging.qty"
+                                           placeholder="Qty"
+                                           min="0"
+                                           class="w-full sm:w-24 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                           required>
+                                    <button type="button" 
+                                            @click="removePackaging(index)"
+                                            class="w-full sm:w-auto px-4 py-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium">
+                                        <i class="fas fa-trash mr-2"></i>Hapus
+                                    </button>
+                                </div>
                             </div>
                         </template>
                         
