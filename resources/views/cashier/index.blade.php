@@ -315,18 +315,10 @@
                                    class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500">
                             
                             <!-- Quick Cash Buttons - Compact -->
-                            <div class="grid grid-cols-3 gap-1 mt-1">
+                            <div class="mt-1">
                                 <button @click="setCustomerMoney(finalTotal)"
-                                        class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors">
+                                        class="w-full p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors">
                                     Pas
-                                </button>
-                                <button @click="setCustomerMoney(getQuickAmount(finalTotal, 5000))"
-                                        class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors"
-                                        x-text="'+5K'">
-                                </button>
-                                <button @click="setCustomerMoney(getQuickAmount(finalTotal, 10000))"
-                                        class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors"
-                                        x-text="'+10K'">
                                 </button>
                             </div>
                             
