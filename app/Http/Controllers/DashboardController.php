@@ -16,7 +16,14 @@ class DashboardController extends Controller
     {
         $today = Carbon::today();
         $user = Auth::user();
-        $userId = $request->get('user_id'); // Untuk filter kasir
+        
+        // Jika kasir, otomatis filter ke user_id sendiri
+        if ($user->role === 'cashier') {
+            $userId = $user->id;
+        } else {
+            // Admin/Manager bisa pilih kasir atau lihat semua
+            $userId = $request->get('user_id');
+        }
 
         // Query dasar transaction
         $transactionQuery = Transaction::whereDate('created_at', $today);

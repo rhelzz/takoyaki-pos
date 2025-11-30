@@ -36,19 +36,28 @@
                                class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                     </div>
 
-                    <!-- User Filter -->
-                    <div class="flex items-center space-x-2">
-                        <label class="text-sm font-medium text-gray-700">Kasir:</label>
-                        <select name="user_id" 
-                                class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 min-w-[150px]">
-                            <option value="">Semua Kasir</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ $userId == $user->id ? 'selected' : '' }}>
-                                    {{ $user->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <!-- User Filter (hanya untuk Admin/Manager) -->
+                    @if(auth()->user()->role !== 'cashier')
+                        <div class="flex items-center space-x-2">
+                            <label class="text-sm font-medium text-gray-700">Kasir:</label>
+                            <select name="user_id" 
+                                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 min-w-[150px]">
+                                <option value="">Semua Kasir</option>
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}" {{ $userId == $user->id ? 'selected' : '' }}>
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @else
+                        <!-- Hidden input untuk kasir (auto-fill dengan user_id kasir yang login) -->
+                        <input type="hidden" name="user_id" value="{{ auth()->user()->id }}">
+                        <div class="flex items-center space-x-2 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                            <i class="fas fa-user-circle text-red-600"></i>
+                            <span class="text-sm font-medium text-gray-700">{{ auth()->user()->name }}</span>
+                        </div>
+                    @endif
 
                     <button type="submit" 
                             class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Models\TransactionItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class ReportController extends Controller
 {
@@ -51,7 +52,15 @@ class ReportController extends Controller
     public function dailyReport(Request $request)
     {
         $date = $request->date ? Carbon::parse($request->date) : Carbon::today();
-        $userId = $request->user_id; // Filter user/kasir
+        $currentUser = Auth::user();
+        
+        // Jika kasir, otomatis filter ke user_id sendiri
+        if ($currentUser->role === 'cashier') {
+            $userId = $currentUser->id;
+        } else {
+            // Admin/Manager bisa pilih kasir atau lihat semua
+            $userId = $request->user_id;
+        }
         
         // Base query
         $transactionQuery = Transaction::whereDate('created_at', $date);

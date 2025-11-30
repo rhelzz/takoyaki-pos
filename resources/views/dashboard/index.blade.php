@@ -4,18 +4,51 @@
 
 @section('content')
 <div class="p-4 max-w-7xl mx-auto" x-data="dashboard()">
-    <!-- Filter Kasir -->
-    <form method="GET" class="mb-4 flex items-center space-x-2">
-        <label for="user_id" class="text-sm font-medium text-gray-700">Pilih Kasir:</label>
-        <select name="user_id" id="user_id" class="px-3 py-2 border rounded" onchange="this.form.submit()">
-            <option value="">Semua Kasir</option>
-            @foreach($cashiers as $kasir)
-                <option value="{{ $kasir->id }}" {{ $userId == $kasir->id ? 'selected' : '' }}>
-                    {{ $kasir->name }}
-                </option>
-            @endforeach
-        </select>
-    </form>
+    <!-- Filter Kasir (hanya untuk Admin/Manager) -->
+    @if(auth()->user()->role !== 'cashier')
+        <form method="GET" class="mb-4">
+            <div class="bg-white rounded-lg shadow p-4 flex flex-col lg:flex-row items-start lg:items-center gap-3">
+                <label for="user_id" class="text-sm font-medium text-gray-700">
+                    <i class="fas fa-filter mr-2 text-red-600"></i>Pilih Kasir:
+                </label>
+                <select name="user_id" 
+                        id="user_id" 
+                        class="flex-1 lg:flex-none px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 min-w-[200px]" 
+                        onchange="this.form.submit()">
+                    <option value="">📊 Semua Kasir</option>
+                    @foreach($cashiers as $kasir)
+                        <option value="{{ $kasir->id }}" {{ $userId == $kasir->id ? 'selected' : '' }}>
+                            {{ $kasir->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @if($userId)
+                    <a href="{{ route('dashboard') }}" 
+                       class="text-sm text-gray-600 hover:text-red-600 flex items-center">
+                        <i class="fas fa-times mr-1"></i>Reset Filter
+                    </a>
+                @endif
+            </div>
+        </form>
+    @else
+        <!-- Info untuk Kasir -->
+        <div class="mb-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg shadow p-4 border border-red-100">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white text-lg font-bold mr-4">
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Data Dashboard untuk:</p>
+                    <p class="text-lg font-bold text-gray-800">{{ auth()->user()->name }}</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Menampilkan statistik transaksi Anda hari ini
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+    
     <!-- Welcome Header -->
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-2">
