@@ -7,25 +7,6 @@ use Illuminate\Http\Request;
 
 class StockMasukController extends Controller
 {
-    /**
-     * Daftar template item default (toping & packaging).
-     */
-    protected function defaultItems()
-    {
-        return [
-            'Gurita' => 0,
-            'Crabstick' => 0,
-            'Udang' => 0,
-            'Beef' => 0,
-            'Bakso' => 0,
-            'Sosis' => 0,
-            'Box S' => 0,
-            'Box M' => 0,
-            'Box L' => 0,
-            'Styrofoam' => 0,
-        ];
-    }
-
     public function index(Request $request)
     {
         $query = StockMasuk::orderBy('tanggal', 'desc');
@@ -47,34 +28,30 @@ class StockMasukController extends Controller
 
     public function create()
     {
-        $defaultItems = $this->defaultItems();
-        return view('stock-masuk.create', compact('defaultItems'));
+        return view('stock-masuk.create');
     }
 
     public function store(Request $request)
     {
-        $defaultItems = $this->defaultItems();
-        $itemKeys = array_keys($defaultItems);
-
         // Validasi
         $validatedData = $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
-            'items' => 'required|array',
-            'items.*' => 'numeric|min:0'
+            'toppings' => 'required|json',
+            'packagings' => 'required|json'
         ]);
 
-        $items = [];
-        foreach ($itemKeys as $item) {
-            $items[$item] = (int) ($validatedData['items'][$item] ?? 0);
-        }
+        // Decode JSON
+        $toppings = json_decode($validatedData['toppings'], true);
+        $packagings = json_decode($validatedData['packagings'], true);
 
         $dataToCreate = [
             'judul' => $validatedData['judul'],
             'deskripsi' => $validatedData['deskripsi'],
             'tanggal' => $validatedData['tanggal'],
-            'items' => $items,
+            'toppings' => $toppings,
+            'packagings' => $packagings,
         ];
 
         StockMasuk::create($dataToCreate);
@@ -85,40 +62,34 @@ class StockMasukController extends Controller
 
     public function show(StockMasuk $stockMasuk)
     {
-        $items = $stockMasuk->items ?? [];
-        return view('stock-masuk.show', compact('stockMasuk', 'items'));
+        return view('stock-masuk.show', compact('stockMasuk'));
     }
 
     public function edit(StockMasuk $stockMasuk)
     {
-        $defaultItems = $this->defaultItems();
-        $items = array_merge($defaultItems, $stockMasuk->items ?? []);
-        return view('stock-masuk.edit', compact('stockMasuk', 'items', 'defaultItems'));
+        return view('stock-masuk.edit', compact('stockMasuk'));
     }
 
     public function update(Request $request, StockMasuk $stockMasuk)
     {
-        $defaultItems = $this->defaultItems();
-        $itemKeys = array_keys($defaultItems);
-
         $validatedData = $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
-            'items' => 'required|array',
-            'items.*' => 'numeric|min:0'
+            'toppings' => 'required|json',
+            'packagings' => 'required|json'
         ]);
 
-        $items = [];
-        foreach ($itemKeys as $item) {
-            $items[$item] = (int) ($validatedData['items'][$item] ?? 0);
-        }
+        // Decode JSON
+        $toppings = json_decode($validatedData['toppings'], true);
+        $packagings = json_decode($validatedData['packagings'], true);
 
         $dataToUpdate = [
             'judul' => $validatedData['judul'],
             'deskripsi' => $validatedData['deskripsi'],
             'tanggal' => $validatedData['tanggal'],
-            'items' => $items,
+            'toppings' => $toppings,
+            'packagings' => $packagings,
         ];
 
         $stockMasuk->update($dataToUpdate);

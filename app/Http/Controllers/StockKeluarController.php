@@ -7,25 +7,6 @@ use Illuminate\Http\Request;
 
 class StockKeluarController extends Controller
 {
-    /**
-     * Daftar template item default (toping & packaging).
-     */
-    protected function defaultItems()
-    {
-        return [
-            'Gurita' => 0,
-            'Crabstick' => 0,
-            'Udang' => 0,
-            'Beef' => 0,
-            'Bakso' => 0,
-            'Sosis' => 0,
-            'Box S' => 0,
-            'Box M' => 0,
-            'Box L' => 0,
-            'Styrofoam' => 0,
-        ];
-    }
-
     public function index(Request $request)
     {
         $query = StockKeluar::orderBy('tanggal', 'desc');
@@ -47,32 +28,29 @@ class StockKeluarController extends Controller
 
     public function create()
     {
-        $defaultItems = $this->defaultItems();
-        return view('stock-keluar.create', compact('defaultItems'));
+        return view('stock-keluar.create');
     }
 
     public function store(Request $request)
     {
-        $defaultItems = $this->defaultItems();
-        $itemKeys = array_keys($defaultItems);
-
-        $request->validate([
+        $validatedData = $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
-            'items' => 'required|array',
+            'toppings' => 'required|json',
+            'packagings' => 'required|json'
         ]);
 
-        $items = [];
-        foreach ($itemKeys as $item) {
-            $items[$item] = (int) ($request->items[$item] ?? 0);
-        }
+        // Decode JSON
+        $toppings = json_decode($validatedData['toppings'], true);
+        $packagings = json_decode($validatedData['packagings'], true);
 
         StockKeluar::create([
-            'judul' => $request->judul,
-            'deskripsi' => $request->deskripsi,
-            'tanggal' => $request->tanggal,
-            'items' => $items,
+            'judul' => $validatedData['judul'],
+            'deskripsi' => $validatedData['deskripsi'],
+            'tanggal' => $validatedData['tanggal'],
+            'toppings' => $toppings,
+            'packagings' => $packagings,
         ]);
 
         return redirect()->route('stock-keluar.index')
@@ -81,39 +59,34 @@ class StockKeluarController extends Controller
 
     public function show(StockKeluar $stockKeluar)
     {
-        $items = $stockKeluar->items ?? [];
-        return view('stock-keluar.show', compact('stockKeluar', 'items'));
+        return view('stock-keluar.show', compact('stockKeluar'));
     }
 
     public function edit(StockKeluar $stockKeluar)
     {
-        $defaultItems = $this->defaultItems();
-        $items = array_merge($defaultItems, $stockKeluar->items ?? []);
-        return view('stock-keluar.edit', compact('stockKeluar', 'items', 'defaultItems'));
+        return view('stock-keluar.edit', compact('stockKeluar'));
     }
 
     public function update(Request $request, StockKeluar $stockKeluar)
     {
-        $defaultItems = $this->defaultItems();
-        $itemKeys = array_keys($defaultItems);
-
-        $request->validate([
+        $validatedData = $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'tanggal' => 'required|date',
-            'items' => 'required|array',
+            'toppings' => 'required|json',
+            'packagings' => 'required|json'
         ]);
 
-        $items = [];
-        foreach ($itemKeys as $item) {
-            $items[$item] = (int) ($request->items[$item] ?? 0);
-        }
+        // Decode JSON
+        $toppings = json_decode($validatedData['toppings'], true);
+        $packagings = json_decode($validatedData['packagings'], true);
 
         $stockKeluar->update([
-            'judul' => $request->judul,
-            'deskripsi' => $request->deskripsi,
-            'tanggal' => $request->tanggal,
-            'items' => $items,
+            'judul' => $validatedData['judul'],
+            'deskripsi' => $validatedData['deskripsi'],
+            'tanggal' => $validatedData['tanggal'],
+            'toppings' => $toppings,
+            'packagings' => $packagings,
         ]);
 
         return redirect()->route('stock-keluar.index')

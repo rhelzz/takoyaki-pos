@@ -26,32 +26,51 @@
             @endif
 
             <div class="mb-4">
-                <h4 class="font-semibold text-gray-700 mt-2 mb-2">Toping</h4>
-                <table class="w-full mb-2">
-                    <tbody>
-                        @foreach(['Gurita','Crabstick','Udang','Beef','Bakso','Sosis'] as $item)
-                        <tr>
-                            <td class="py-1 text-gray-700 w-1/2">{{ $item }}</td>
-                            <td class="py-1 text-right font-semibold text-blue-700">
-                                {{ $items[$item] ?? 0 }}
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <h4 class="font-semibold text-gray-700 mt-4 mb-2">Packaging</h4>
-                <table class="w-full">
-                    <tbody>
-                        @foreach(['Box S','Box M','Box L','Styrofoam'] as $item)
-                        <tr>
-                            <td class="py-1 text-gray-700 w-1/2">{{ $item }}</td>
-                            <td class="py-1 text-right font-semibold text-blue-700">
-                                {{ $items[$item] ?? 0 }}
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <h4 class="font-semibold text-gray-700 mt-2 mb-2 flex items-center">
+                    <i class="fas fa-fish text-blue-600 mr-2"></i>
+                    Topping
+                </h4>
+                @if(count($stockMasuk->toppings ?? []) > 0)
+                    <div class="bg-blue-50 rounded-lg p-3">
+                        <table class="w-full">
+                            <tbody>
+                                @foreach($stockMasuk->toppings as $topping)
+                                <tr class="border-b border-blue-100 last:border-0">
+                                    <td class="py-2 text-gray-700">{{ $topping['name'] }}</td>
+                                    <td class="py-2 text-right font-semibold text-blue-700">
+                                        {{ $topping['qty'] }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-400 italic">Tidak ada data topping</p>
+                @endif
+                
+                <h4 class="font-semibold text-gray-700 mt-4 mb-2 flex items-center">
+                    <i class="fas fa-box text-orange-600 mr-2"></i>
+                    Packaging
+                </h4>
+                @if(count($stockMasuk->packagings ?? []) > 0)
+                    <div class="bg-orange-50 rounded-lg p-3">
+                        <table class="w-full">
+                            <tbody>
+                                @foreach($stockMasuk->packagings as $packaging)
+                                <tr class="border-b border-orange-100 last:border-0">
+                                    <td class="py-2 text-gray-700">{{ $packaging['name'] }}</td>
+                                    <td class="py-2 text-right font-semibold text-orange-700">
+                                        {{ $packaging['qty'] }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-400 italic">Tidak ada data packaging</p>
+                @endif
             </div>
         </div>
         <div class="text-center">

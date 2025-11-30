@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('judul'); // Judul laporan
             $table->text('deskripsi')->nullable(); // Deskripsi laporan
-            $table->json('items'); // Isi qty semua item (toping & packaging), format JSON
+            $table->json('toppings'); // Array topping [{name: 'Gurita', qty: 10}, ...]
+            $table->json('packagings'); // Array packaging [{name: 'Box S', qty: 5}, ...]
             $table->date('tanggal');
             $table->timestamps();
         });

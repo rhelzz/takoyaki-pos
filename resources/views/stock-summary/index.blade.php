@@ -77,9 +77,17 @@ function renderCards() {
                 <span class="ml-auto text-xs text-gray-500">${formatDateID(trx.waktu)}</span>
             </div>
             <div class="font-semibold text-blue-800 mb-1">${trx.judul || '-'}</div>
-            <ul class="mt-2 text-sm text-gray-700 grid grid-cols-2 gap-x-4">
+            <ul class="mt-2 text-sm text-gray-700 space-y-1">
                 ${trx.barang.map(b => 
-                    `<li class="flex justify-between"><span>${b.nama_barang}</span> <b>${b.qty}</b></li>`
+                    `<li class="flex justify-between items-center">
+                        <span class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-0.5 rounded ${b.kategori === 'Topping' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}">
+                                ${b.kategori}
+                            </span>
+                            ${b.nama_barang}
+                        </span>
+                        <b>${b.qty}</b>
+                    </li>`
                 ).join('')}
             </ul>
         </button>`;
@@ -153,13 +161,16 @@ function showSummaryModal(idx) {
     let html = `<table class="w-full text-sm mt-2">
         <thead>
             <tr class="border-b border-gray-200">
+                <th class="text-left py-1">Kategori</th>
                 <th class="text-left py-1">Barang</th>
                 <th class="text-center py-1">${data.jenis==='masuk' ? 'Qty Masuk' : 'Qty Keluar'}</th>
             </tr>
         </thead>
         <tbody>`;
     data.barang.forEach(item => {
+        const badgeClass = item.kategori === 'Topping' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700';
         html += `<tr>
+            <td class="py-1"><span class="text-xs px-2 py-1 rounded ${badgeClass}">${item.kategori}</span></td>
             <td class="py-1">${item.nama_barang}</td>
             <td class="py-1 text-center font-bold">${item.qty}</td>
         </tr>`;

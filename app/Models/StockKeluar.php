@@ -14,12 +14,14 @@ class StockKeluar extends Model
     protected $fillable = [
         'judul',
         'deskripsi',
-        'items',
+        'toppings',
+        'packagings',
         'tanggal'
     ];
 
     protected $casts = [
         'tanggal' => 'date',
-        'items' => 'array'
+        'toppings' => 'array',
+        'packagings' => 'array'
     ];
 }
