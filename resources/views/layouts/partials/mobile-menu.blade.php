@@ -66,6 +66,13 @@
             <span class="text-sm">Transaksi</span>
         </a>
 
+        <a href="{{ route('daily-expenses.index') }}" 
+           class="mobile-menu-link flex items-center space-x-2 p-2 rounded-lg transition-colors {{ request()->routeIs('daily-expenses*') ? 'bg-red-50 text-red-600' : 'text-gray-700 hover:bg-gray-50' }}"
+           @click="mobileMenuOpen = false">
+            <i class="fas fa-wallet w-4 text-sm"></i>
+            <span class="text-sm">Pengeluaran Harian</span>
+        </a>
+
         <div class="space-y-0.5">
             <div class="flex items-center space-x-2 p-2 text-gray-500 text-xs font-medium">
                 <i class="fas fa-chart-bar w-4"></i>
